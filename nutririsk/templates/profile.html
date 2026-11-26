@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile &amp; Account Settings — NutriRisk AI{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <h1 class="h3 fw-bold mb-1">User Profile &amp; Account Settings</h1>
+        <p class="text-muted small mb-0">Manage account identity, contact information, credentials, and clinical screening activity.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-light text-dark border p-2">
+          Role: <strong class="text-teal text-capitalize">{{ u.role }}</strong>
+        </span>
+        <span class="badge bg-emerald-subtle text-emerald border border-emerald p-2">
+          &check; Active Account
+        </span>
+      </div>
+    </div>
+
+    <!-- Account Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-md-3">
+        <div class="stat-kpi-card h-100">
+          <div class="stat-icon-wrapper teal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="stat-label">System Role</div>
+          <div class="stat-value text-capitalize fs-5">{{ u.role }}</div>
+          <div class="stat-trend neutral">
+            {{ 'Full Governance' if u.role == 'admin' else 'Clinical Screening' }}
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="stat-kpi-card h-100">
+          <div class="stat-icon-wrapper emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="stat-label">Assessments</div>
+          <div class="stat-value fs-4">{{ n }}</div>
+          <div class="stat-trend positive">
+            <a href="{{ url_for('assessment.history') }}" class="text-decoration-none text-emerald fw-semibold">
+              View History &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="stat-kpi-card h-100">
+          <div class="stat-icon-wrapper amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="stat-label">Member Since</div>
+          <div class="stat-value fs-6 text-truncate" title="{{ u.created }}">
+            {{ u.created[:10] }}
+          </div>
+          <div class="stat-trend neutral">Account Created</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="stat-kpi-card h-100">
+          <div class="stat-icon-wrapper blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="stat-label">Credentials</div>
+          <div class="stat-value fs-6">Protected</div>
+          <div class="stat-trend neutral">Scrypt Salted</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Edit Display Name -->
+    <div class="clinical-card mb-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <h2 class="h5 fw-bold mb-0">Personal Identity &amp; Display Name</h2>
+      </div>
+      <p class="text-muted small mb-3">
+        Your display name appears on patient assessment summaries, clinician signatures in generated PDF reports, and system navigation.
+      </p>
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update_name">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label small fw-bold text-muted" for="inputName">Full Name / Display Name <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input type="text" id="inputName" name="name" class="form-control-clinical" value="{{ u.name }}" minlength="2" maxlength="100" required placeholder="e.g. Dr. Jane Doe">
+            </div>
+            <div class="form-text small text-muted">Minimum 2 characters, maximum 100 characters.</div>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary-teal w-100">
+              Update Display Name
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- 2. Registered Email & Email Update with Verification -->
+    <div class="clinical-card mb-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </span>
+        <h2 class="h5 fw-bold mb-0">Registered Email &amp; Verification</h2>
+      </div>
+      
+      <!-- Current Email Display -->
+      <div class="p-3 bg-light rounded-3 border mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <div class="text-muted small fw-semibold">Current Registered Email Address:</div>
+            <div class="fs-6 fw-bold text-dark font-monospace">{{ u.email }}</div>
+          </div>
+          <span class="badge bg-teal-subtle text-teal border border-teal px-3 py-2">
+            &check; Primary Contact &amp; Login ID
+          </span>
+        </div>
+      </div>
+
+      <div class="alert alert-info py-2 px-3 small border-0 bg-light text-muted mb-3">
+        <strong>Security Verification:</strong> Updating your primary email address requires verifying your <strong>current password</strong> to protect against unauthorized account modifications.
+      </div>
+
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update_email">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted" for="newEmail">New Email Address <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </span>
+              <input type="email" id="newEmail" name="email" class="form-control-clinical" placeholder="new.email@example.com" required>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted" for="currentPwEmail">Current Password (Verification) <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="currentPwEmail" name="current_password_email" class="form-control-clinical" placeholder="Enter current password" required>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 pt-1">
+          <button type="submit" class="btn btn-outline-teal">
+            Verify Password &amp; Update Email
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3. Security & Password Update -->
+    <div class="clinical-card mb-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </span>
+        <h2 class="h5 fw-bold mb-0">Security &amp; Password Update</h2>
+      </div>
+      <p class="text-muted small mb-3">
+        Ensure your account is protected with a strong password of at least 6 characters. Passwords are securely hashed with salted Scrypt before storage.
+      </p>
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="change_password">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-muted" for="currentPw">Current Password <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="currentPw" name="current_password" class="form-control-clinical" placeholder="Current password" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-muted" for="newPw">New Password <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="newPw" name="new_password" class="form-control-clinical" placeholder="Min. 6 characters" minlength="6" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-muted" for="confirmNewPw">Confirm New Password <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="confirmNewPw" name="confirm_new_password" class="form-control-clinical" placeholder="Re-enter new password" minlength="6" required>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 pt-1">
+          <button type="submit" class="btn btn-outline-slate">
+            Update Password
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 4. Face ID Biometric Credentials -->
+    <div class="clinical-card mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-teal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </span>
+          <h2 class="h5 fw-bold mb-0">Biometric Authentication &amp; Face ID</h2>
+        </div>
+        <div>
+          {% if u.face_enrolled %}
+            <span class="badge bg-success py-2 px-3 d-inline-flex align-items-center gap-1">
+              <span>&check;</span> Face ID Active
+            </span>
+          {% else %}
+            <span class="badge bg-secondary py-2 px-3">
+              Not Enrolled
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      <p class="text-muted small mb-3">
+        Enroll your facial biometric credentials to enable instant, passwordless sign-in using your device webcam.
+      </p>
+
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-teal btn-sm d-flex align-items-center gap-2" id="btnOpenEnrollModal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>{{ 'Update Face ID Scan' if u.face_enrolled else 'Enroll Face ID Now' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. Account Integrity & Session Management -->
+    <div class="clinical-card">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
+        <h2 class="h5 fw-bold mb-0">Assessment Data Integrity &amp; Session Management</h2>
+      </div>
+      <p class="text-muted small mb-3">
+        All patient screening assessments are securely tied to your immutable user identifier (<code>Account #{{ u.id }}</code>). Updating your profile name, email, or password will never delete, decouple, or corrupt your historical assessment records.
+      </p>
+      <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+        <a href="{{ url_for('assessment.history') }}" class="btn btn-outline-teal btn-sm">
+          View Historical Assessments ({{ n }})
+        </a>
+        <a href="{{ url_for('assessment.predict_page') }}" class="btn btn-outline-slate btn-sm">
+          Start New Assessment
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm ms-auto">
+          Secure Sign Out
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Face ID Enrollment Modal -->
+<div class="modal fade" id="faceEnrollModal" tabindex="-1" aria-labelledby="faceEnrollModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-dark text-white border-0 py-3">
+        <h5 class="modal-title fs-6 fw-bold d-flex align-items-center gap-2" id="faceEnrollModalLabel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Enroll Face ID Biometric Credential</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <p class="text-muted small mb-3">
+          Position your face in the center of the frame and click <strong>Capture &amp; Enroll</strong>.
+        </p>
+
+        <!-- Video Camera Viewport -->
+        <div class="position-relative mx-auto rounded-3 overflow-hidden bg-black mb-3" style="max-width: 360px; height: 260px;">
+          <video id="faceEnrollVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+          
+          <!-- Target Oval -->
+          <div class="position-absolute top-50 start-50 translate-middle rounded-circle border border-2 border-teal opacity-75" style="width: 180px; height: 210px; box-shadow: 0 0 20px rgba(13, 148, 136, 0.5);"></div>
+          
+          <div id="enrollStatusBadge" class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white py-1 small">
+            Ready to capture
+          </div>
+        </div>
+
+        <canvas id="faceEnrollCanvas" style="display: none;"></canvas>
+
+        <div id="enrollAlertBox" class="alert small py-2 d-none" role="alert"></div>
+
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary-teal btn-sm px-4 d-flex align-items-center gap-2" id="btnCaptureEnroll">
+            <span>Capture &amp; Enroll</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const btnOpenModal = document.getElementById("btnOpenEnrollModal");
+  if (!btnOpenModal) return;
+
+  const modalEl = document.getElementById("faceEnrollModal");
+  const modal = new bootstrap.Modal(modalEl);
+  const video = document.getElementById("faceEnrollVideo");
+  const canvas = document.getElementById("faceEnrollCanvas");
+  const btnCapture = document.getElementById("btnCaptureEnroll");
+  const alertBox = document.getElementById("enrollAlertBox");
+  const statusBadge = document.getElementById("enrollStatusBadge");
+  let stream = null;
+
+  btnOpenModal.addEventListener("click", async function() {
+    modal.show();
+    alertBox.classList.add("d-none");
+    statusBadge.textContent = "Requesting camera access...";
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      video.srcObject = stream;
+      statusBadge.textContent = "Camera active. Hold steady.";
+    } catch (err) {
+      console.warn("Camera not available:", err);
+      statusBadge.textContent = "Camera unavailable. You may test with simulation capture.";
+      showAlert("info", "Webcam access unavailable or permission denied. You can click Capture & Enroll to test with simulation mode.");
+    }
+  });
+
+  function stopStream() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+  }
+
+  modalEl.addEventListener("hidden.bs.modal", stopStream);
+
+  function showAlert(type, msg) {
+    alertBox.className = "alert alert-" + type + " small py-2";
+    alertBox.textContent = msg;
+    alertBox.classList.remove("d-none");
+  }
+
+  btnCapture.addEventListener("click", async function() {
+    btnCapture.disabled = true;
+    btnCapture.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Enrolling...`;
+
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 240;
+    const ctx = canvas.getContext("2d");
+    if (stream && video.videoWidth > 0) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = "#0d9488";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "14px sans-serif";
+      ctx.fillText("NutriRisk Biometric Scan", 20, 100);
+    }
+    const imageData = canvas.toDataURL("image/jpeg", 0.8);
+
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute("content") : "";
+      const resp = await fetch("/auth/face-enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ image_data: imageData })
+      });
+      const data = await resp.json();
+      if (resp.ok && data.status === "success") {
+        showAlert("success", data.message);
+        stopStream();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        showAlert("danger", data.message || "Enrollment failed.");
+        btnCapture.disabled = false;
+        btnCapture.innerHTML = "<span>Capture &amp; Enroll</span>";
+      }
+    } catch (e) {
+      showAlert("danger", "Network error during biometric enrollment.");
+      btnCapture.disabled = false;
+      btnCapture.innerHTML = "<span>Capture &amp; Enroll</span>";
+    }
+  });
+});
+</script>
+{% endblock %}

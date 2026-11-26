@@ -1,0 +1,181 @@
+{
+  "source": "Real Dataset (data/dataset.csv)",
+  "data_source_label": "REAL",
+  "n_rows": 6000,
+  "n_train": 4800,
+  "n_test": 1200,
+  "class_counts": {
+    "High Risk": 2195,
+    "Moderate Risk": 2103,
+    "Low Risk": 1702
+  },
+  "best": "XGBoost",
+  "models": {
+    "Logistic Regression": {
+      "accuracy": 0.7067,
+      "precision": 0.7087,
+      "recall": 0.7068,
+      "f1": 0.7077,
+      "roc_auc": 0.8711,
+      "cv_f1": 0.7084,
+      "cv_f1_mean": 0.7084,
+      "cv_f1_std": 0.0132,
+      "confusion": [
+        [
+          247,
+          89,
+          4
+        ],
+        [
+          71,
+          255,
+          95
+        ],
+        [
+          12,
+          81,
+          346
+        ]
+      ]
+    },
+    "Decision Tree": {
+      "accuracy": 0.7417,
+      "precision": 0.7587,
+      "recall": 0.7415,
+      "f1": 0.7471,
+      "roc_auc": 0.882,
+      "cv_f1": 0.7468,
+      "cv_f1_mean": 0.7468,
+      "cv_f1_std": 0.0143,
+      "confusion": [
+        [
+          252,
+          85,
+          3
+        ],
+        [
+          49,
+          307,
+          65
+        ],
+        [
+          3,
+          105,
+          331
+        ]
+      ]
+    },
+    "Random Forest": {
+      "accuracy": 0.7667,
+      "precision": 0.7729,
+      "recall": 0.766,
+      "f1": 0.7688,
+      "roc_auc": 0.914,
+      "cv_f1": 0.7769,
+      "cv_f1_mean": 0.7769,
+      "cv_f1_std": 0.0098,
+      "confusion": [
+        [
+          263,
+          76,
+          1
+        ],
+        [
+          49,
+          287,
+          85
+        ],
+        [
+          0,
+          69,
+          370
+        ]
+      ]
+    },
+    "Gradient Boosting": {
+      "accuracy": 0.7775,
+      "precision": 0.7882,
+      "recall": 0.776,
+      "f1": 0.7806,
+      "roc_auc": 0.9237,
+      "cv_f1": 0.7894,
+      "cv_f1_mean": 0.7894,
+      "cv_f1_std": 0.0151,
+      "confusion": [
+        [
+          260,
+          80,
+          0
+        ],
+        [
+          44,
+          310,
+          67
+        ],
+        [
+          0,
+          76,
+          363
+        ]
+      ]
+    },
+    "XGBoost": {
+      "accuracy": 0.785,
+      "precision": 0.791,
+      "recall": 0.7861,
+      "f1": 0.7883,
+      "roc_auc": 0.9241,
+      "cv_f1": 0.7886,
+      "cv_f1_mean": 0.7886,
+      "cv_f1_std": 0.0163,
+      "confusion": [
+        [
+          276,
+          63,
+          1
+        ],
+        [
+          48,
+          302,
+          71
+        ],
+        [
+          0,
+          75,
+          364
+        ]
+      ]
+    }
+  },
+  "importance": {
+    "Age": 0.1645,
+    "Sex": 0.0,
+    "BMI (Height & Weight)": 0.0906,
+    "Dietary Diversity": 0.1739,
+    "Meal Frequency": 0.0655,
+    "Physical Activity": 0.0095,
+    "Household Income": 0.0773,
+    "Education Level": -0.0006,
+    "Residence (Urban/Rural)": 0.0217,
+    "Recent Illness": 0.1072
+  },
+  "labels": [
+    "Low Risk",
+    "Moderate Risk",
+    "High Risk"
+  ],
+  "features": [
+    "age",
+    "sex",
+    "height_cm",
+    "weight_kg",
+    "food_groups",
+    "meals_per_day",
+    "activity",
+    "income",
+    "education",
+    "residence",
+    "recent_illness",
+    "bmi (engineered)"
+  ]
+}

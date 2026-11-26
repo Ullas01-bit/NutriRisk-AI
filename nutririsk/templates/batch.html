@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Patient Screening — NutriRisk AI{% endblock %}
+
+{% block body %}
+<!-- Page Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="h3 fw-bold mb-0">Batch Patient Screening &amp; Ward Triage</h1>
+      <span class="badge bg-teal-subtle text-teal border" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+        Bulk Ingestion
+      </span>
+    </div>
+    <p class="text-muted small mb-0">
+      Upload multi-patient CSV datasets for automated high-throughput nutritional risk stratification, XAI factor extraction, and cohort persistence.
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('assessment.download_batch_template') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Download Sample CSV Template</span>
+    </a>
+    <a href="/predict" class="btn btn-primary-teal btn-sm d-flex align-items-center gap-1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Single Assessment</span>
+    </a>
+  </div>
+</div>
+
+<!-- Upload & Guidelines Section -->
+<div class="row g-4 mb-4">
+  <!-- Upload Box -->
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100">
+      <h2 class="h5 fw-bold text-dark mb-3">Upload Patient Dataset (CSV)</h2>
+      <p class="text-muted small mb-3">
+        Upload a standard comma-separated `.csv` file. The backend will parse anthropometric parameters, compute BMI, and execute XGBoost inference for each patient row.
+      </p>
+
+      <form method="post" action="/batch" enctype="multipart/form-data" id="batchUploadForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted mb-1">Select CSV File</label>
+          <input type="file" name="csv_file" id="csvFileInput" class="form-control py-2" accept=".csv" required>
+          <div class="form-text small">Maximum file size: 5 MB. Supported format: <code>.csv</code></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary-teal w-100 py-2 d-flex justify-content-center align-items-center gap-2">
+          <span>Process Batch Screening</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Guidelines Box -->
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100 bg-light-subtle">
+      <h2 class="h5 fw-bold text-dark mb-2">Required CSV Columns</h2>
+      <p class="text-muted small mb-3">Ensure your CSV header row contains the following exact column names:</p>
+      
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered bg-white mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th>Column</th>
+              <th>Type / Allowed Values</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>subject</code></td>
+              <td>String (Patient identifier)</td>
+              <td>Patient 101</td>
+            </tr>
+            <tr>
+              <td><code>age</code></td>
+              <td>Integer (18 – 100)</td>
+              <td>65</td>
+            </tr>
+            <tr>
+              <td><code>sex</code></td>
+              <td>Female / Male</td>
+              <td>Female</td>
+            </tr>
+            <tr>
+              <td><code>height_cm</code></td>
+              <td>Float (120.0 – 220.0)</td>
+              <td>160.0</td>
+            </tr>
+            <tr>
+              <td><code>weight_kg</code></td>
+              <td>Float (25.0 – 250.0)</td>
+              <td>42.0</td>
+            </tr>
+            <tr>
+              <td><code>food_groups</code></td>
+              <td>Integer (1 – 8)</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td><code>meals_per_day</code></td>
+              <td>Integer (1 – 8)</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td><code>activity</code></td>
+              <td>Low / Moderate / High</td>
+              <td>Low</td>
+            </tr>
+            <tr>
+              <td><code>income</code></td>
+              <td>Low / Middle / High</td>
+              <td>Low</td>
+            </tr>
+            <tr>
+              <td><code>education</code></td>
+              <td>None / Primary / Secondary / Higher</td>
+              <td>Primary</td>
+            </tr>
+            <tr>
+              <td><code>residence</code></td>
+              <td>Urban / Rural</td>
+              <td>Rural</td>
+            </tr>
+            <tr>
+              <td><code>recent_illness</code></td>
+              <td>No / Yes</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if batch_summary %}
+<!-- Batch Results Section -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 border-bottom pb-3">
+    <div>
+      <h2 class="h4 fw-bold text-dark mb-1">Batch Screening Results</h2>
+      <p class="text-muted small mb-0">Processed on {{ batch_summary.timestamp }} &bull; Source File: <strong>{{ batch_summary.filename }}</strong></p>
+    </div>
+    <div>
+      <a href="{{ url_for('assessment.history') }}" class="btn btn-outline-secondary btn-sm">
+        View in History &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+      <div class="stat-kpi-card text-center">
+        <div class="stat-label">Total Evaluated</div>
+        <div class="h3 fw-bold text-dark mb-0">{{ batch_summary.total }}</div>
+        <div class="small text-muted">{{ batch_summary.successful }} valid &bull; {{ batch_summary.failed }} invalid</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="stat-kpi-card text-center border-start border-4 border-success">
+        <div class="stat-label">Low Risk</div>
+        <div class="h3 fw-bold text-success mb-0">{{ batch_summary.low_count }}</div>
+        <div class="small text-muted">{{ batch_summary.low_pct }}% of cohort</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="stat-kpi-card text-center border-start border-4 border-warning">
+        <div class="stat-label">Moderate Risk</div>
+        <div class="h3 fw-bold text-warning mb-0">{{ batch_summary.moderate_count }}</div>
+        <div class="small text-muted">{{ batch_summary.moderate_pct }}% of cohort</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="stat-kpi-card text-center border-start border-4 border-danger">
+        <div class="stat-label">High Risk</div>
+        <div class="h3 fw-bold text-danger mb-0">{{ batch_summary.high_count }}</div>
+        <div class="small text-muted">{{ batch_summary.high_pct }}% of cohort</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Table -->
+  {% if batch_summary.results %}
+    <h3 class="h6 fw-bold text-dark mb-3">Stratified Patients ({{ batch_summary.results|length }})</h3>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle clinical-table mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Subject / Identifier</th>
+            <th>Demographics</th>
+            <th>BMI (kg/m²)</th>
+            <th>Predicted Risk</th>
+            <th>Confidence</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in batch_summary.results %}
+            <tr>
+              <td><span class="text-muted small">#{{ loop.index }}</span></td>
+              <td class="fw-bold">{{ r.subject }}</td>
+              <td class="small">{{ r.age }}y &bull; {{ r.sex }}</td>
+              <td>
+                <span class="fw-mono">{{ "%.2f"|format(r.bmi) }}</span>
+                {% if r.bmi < 18.5 %}
+                  <span class="badge bg-danger-subtle text-danger ms-1">Underweight</span>
+                {% elif r.bmi <= 24.9 %}
+                  <span class="badge bg-success-subtle text-success ms-1">Normal</span>
+                {% elif r.bmi <= 29.9 %}
+                  <span class="badge bg-warning-subtle text-warning ms-1">Overweight</span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger ms-1">Obese</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.risk == 'Low Risk' %}
+                  <span class="badge bg-success py-2 px-3">Low Risk</span>
+                {% elif r.risk == 'Moderate Risk' %}
+                  <span class="badge bg-warning text-dark py-2 px-3">Moderate Risk</span>
+                {% else %}
+                  <span class="badge bg-danger py-2 px-3">High Risk</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="fw-bold">{{ "%.1f"|format(r.confidence * 100) }}%</span>
+              </td>
+              <td class="text-end">
+                <a href="/result/{{ r.id }}" class="btn btn-sm btn-outline-teal" title="View Full Report">
+                  View Detail &rarr;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <!-- Errors List (If Any) -->
+  {% if batch_summary.errors %}
+    <div class="alert alert-warning border border-warning p-3 rounded-3 mt-3">
+      <h4 class="h6 fw-bold text-dark mb-2">Validation Exclusions ({{ batch_summary.errors|length }} Rows Skipped)</h4>
+      <p class="small text-muted mb-2">The following records contained invalid or missing fields and were excluded from database persistence:</p>
+      <ul class="mb-0 small text-danger ps-3">
+        {% for err in batch_summary.errors %}
+          <li><strong>Row {{ err.row }} ({{ err.subject or 'Unknown' }}):</strong> {{ err.reason }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Clinical Decision-Support Disclaimer Banner -->
+<div class="alert alert-light border border-secondary-subtle p-3 rounded-3 d-flex align-items-start gap-3">
+  <span class="text-muted flex-shrink-0 mt-1">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  </span>
+  <div class="small text-muted">
+    <strong>Clinical Decision-Support Disclaimer:</strong> 
+    NutriRisk AI batch screening is an academic triage tool for high-throughput population surveillance. 
+    It does not establish clinical diagnoses. High-risk stratified individuals must undergo individual diagnostic review by licensed clinical dietitians.
+  </div>
+</div>
+{% endblock %}

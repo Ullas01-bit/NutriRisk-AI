@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment History Log — NutriRisk AI{% endblock %}
+
+{% block body %}
+<!-- Page Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Assessment Records &amp; History</h1>
+    <p class="text-muted small mb-0">
+      Search, filter, sort, and inspect past nutritional risk evaluations recorded under your clinical account.
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/predict" class="btn btn-primary-teal d-inline-flex align-items-center gap-2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>New Assessment</span>
+    </a>
+    <a href="/dashboard" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span>User Dashboard</span>
+    </a>
+  </div>
+</div>
+
+<!-- Search, Filter & Sort Controls Card -->
+<div class="clinical-card shadow-sm mb-4">
+  <form method="get" action="/history" id="historyFilterForm" class="row g-2 align-items-end">
+    <!-- Search Query -->
+    <div class="col-lg-3 col-md-6">
+      <label class="form-label small fw-bold text-muted mb-1">Search Subject or ID</label>
+      <div class="custom-input-group">
+        <span class="input-leading-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="text" name="q" class="form-control-clinical bg-white" placeholder="Search patient, subject, #ID..." value="{{ q }}">
+      </div>
+    </div>
+
+    <!-- Risk Category Filter -->
+    <div class="col-lg-2 col-md-3 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">Risk Category</label>
+      <select name="risk" class="form-select form-select-sm py-2">
+        <option value="">All Risk Tiers</option>
+        {% for label in labels %}
+          <option value="{{ label }}" {{ 'selected' if r == label }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Start Date -->
+    <div class="col-lg-2 col-md-3 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">From Date</label>
+      <input type="date" name="start_date" class="form-control form-control-sm py-2" value="{{ start_date }}">
+    </div>
+
+    <!-- End Date -->
+    <div class="col-lg-2 col-md-3 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">To Date</label>
+      <input type="date" name="end_date" class="form-control form-control-sm py-2" value="{{ end_date }}">
+    </div>
+
+    <!-- Sort Selector -->
+    <div class="col-lg-2 col-md-3 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">Sort Records</label>
+      <select name="sort" class="form-select form-select-sm py-2">
+        {% for skey, sval in sort_options.items() %}
+          <option value="{{ skey }}" {{ 'selected' if sort == skey }}>{{ sval[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Filter & Reset Actions -->
+    <div class="col-lg-1 col-md-12 d-flex gap-1">
+      <button type="submit" class="btn btn-primary-teal w-100 py-2" title="Apply Filters">
+        Filter
+      </button>
+      {% if q or r or start_date or end_date or sort != 'date_desc' %}
+        <a href="/history" class="btn btn-outline-secondary py-2" title="Reset all filters">
+          &times;
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Hidden per_page preserver -->
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+  </form>
+
+  <!-- Active Filters Summary Badge Bar -->
+  {% if q or r or start_date or end_date or sort != 'date_desc' %}
+    <div class="d-flex align-items-center gap-2 flex-wrap pt-3 mt-3 border-top small">
+      <span class="text-muted fw-bold">Active Filters:</span>
+      {% if q %}
+        <span class="badge bg-light text-dark border">
+          Keyword: <strong>"{{ q }}"</strong>
+        </span>
+      {% endif %}
+      {% if r %}
+        <span class="badge bg-light text-dark border">
+          Risk: <strong>{{ r }}</strong>
+        </span>
+      {% endif %}
+      {% if start_date %}
+        <span class="badge bg-light text-dark border">
+          From: <strong>{{ start_date }}</strong>
+        </span>
+      {% endif %}
+      {% if end_date %}
+        <span class="badge bg-light text-dark border">
+          To: <strong>{{ end_date }}</strong>
+        </span>
+      {% endif %}
+      {% if sort != 'date_desc' %}
+        <span class="badge bg-light text-dark border">
+          Sort: <strong>{{ sort_options[sort][1] }}</strong>
+        </span>
+      {% endif %}
+      <a href="/history" class="text-danger small text-decoration-none fw-semibold ms-auto">
+        Clear All Filters &times;
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+{% if total_records > 0 %}
+  <!-- Historical Assessment Charts Card -->
+  <div class="clinical-card shadow-sm mb-4">
+    <div class="card-header-clean">
+      <div>
+        <h2 class="h5 fw-bold mb-1">Historical Screening Analytics</h2>
+        <p class="text-muted small mb-0">Distribution and temporal activity across currently filtered records ({{ total_records }} total)</p>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#historyChartsCollapse" aria-expanded="true" aria-controls="historyChartsCollapse">
+        Toggle Analytics
+      </button>
+    </div>
+
+    <div class="collapse show" id="historyChartsCollapse">
+      <div class="row g-4 pt-2">
+        <!-- Chart 1: Filtered Risk Breakdown -->
+        <div class="col-md-5">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="small fw-bold text-muted mb-2 text-center text-uppercase">Risk Category Proportions</div>
+            <div style="position: relative; height: 180px;">
+              <canvas id="historyRiskChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-center gap-3 mt-2 small text-center">
+              <div><span class="badge" style="background-color: var(--risk-low);">&bull;</span> Low: <strong>{{ chart_risk_counts['Low Risk'] }}</strong></div>
+              <div><span class="badge" style="background-color: var(--risk-moderate);">&bull;</span> Mod: <strong>{{ chart_risk_counts['Moderate Risk'] }}</strong></div>
+              <div><span class="badge" style="background-color: var(--risk-high);">&bull;</span> High: <strong>{{ chart_risk_counts['High Risk'] }}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 2: Timeline Activity -->
+        <div class="col-md-7">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="small fw-bold text-muted mb-2 text-center text-uppercase">Screening Activity Timeline</div>
+            <div style="position: relative; height: 180px;">
+              <canvas id="historyTimelineChart"></canvas>
+            </div>
+            <div class="small text-muted text-center mt-2">
+              Assessments recorded by calendar date
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Records Table Card -->
+<div class="clinical-card shadow-sm">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <div class="small text-muted">
+      {% if total_records > 0 %}
+        Showing <strong>{{ start_record }}</strong> to <strong>{{ end_record }}</strong> of <strong>{{ total_records }}</strong> assessments
+      {% else %}
+        Showing <strong>0</strong> records
+      {% endif %}
+    </div>
+
+    <!-- Items per page selector -->
+    <div class="d-flex align-items-center gap-2">
+      <label class="small text-muted text-nowrap">Per page:</label>
+      <div class="btn-group btn-group-sm" role="group">
+        {% for pp in [5, 10, 20, 50] %}
+          <a href="{{ url_for('assessment.history', page=1, q=filter_args.q, risk=filter_args.risk, start_date=filter_args.start_date, end_date=filter_args.end_date, sort=filter_args.sort, per_page=pp) }}"
+             class="btn btn-outline-secondary {{ 'active' if per_page == pp else '' }}">
+            {{ pp }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-clinical align-middle mb-0">
+      <thead class="table-light text-muted small text-uppercase">
+        <tr>
+          <th style="width: 75px;">ID</th>
+          <th>Assessment Date</th>
+          <th>Subject / Patient</th>
+          <th>BMI (kg/m²)</th>
+          <th>Risk Stratification</th>
+          <th>Confidence</th>
+          <th style="min-width: 170px;">Class Probabilities</th>
+          <th class="text-end" style="width: 150px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% set rk = row.risk.split()[0] %}
+          <tr>
+            <!-- ID -->
+            <td class="text-muted fw-bold">#{{ row.id }}</td>
+
+            <!-- Date -->
+            <td class="small text-nowrap">
+              <span class="fw-semibold text-dark">{{ row.created[:10] }}</span>
+              <span class="text-muted opacity-75 ms-1">{{ row.created[11:16] }}</span>
+            </td>
+
+            <!-- Subject -->
+            <td>
+              <div class="fw-semibold text-dark">{{ row.subject }}</div>
+              <div class="small text-muted">{{ row.age }} yrs &bull; {{ row.sex }}</div>
+            </td>
+
+            <!-- BMI -->
+            <td class="fw-semibold">
+              {{ "%.1f"|format(row.bmi) }}
+            </td>
+
+            <!-- Predicted Risk Badge -->
+            <td>
+              <span class="risk-badge {{ rk }}">
+                {{ row.risk }}
+              </span>
+            </td>
+
+            <!-- Confidence -->
+            <td class="fw-bold text-dark">
+              {{ '%.1f'|format(row.confidence * 100) }}%
+            </td>
+
+            <!-- Class Probabilities Breakdown -->
+            <td>
+              {% if row.probs_dict %}
+                {% set p_low = (row.probs_dict.get('Low Risk', 0.0) * 100)|round(1) %}
+                {% set p_mod = (row.probs_dict.get('Moderate Risk', 0.0) * 100)|round(1) %}
+                {% set p_high = (row.probs_dict.get('High Risk', 0.0) * 100)|round(1) %}
+                <!-- Segmented Mini Progress Bar -->
+                <div class="progress mb-1" style="height: 6px; background-color: #e2e8f0; border-radius: 4px;" title="Low: {{ p_low }}% | Moderate: {{ p_mod }}% | High: {{ p_high }}%">
+                  <div class="progress-bar" role="progressbar" style="width: {{ p_low }}%; background-color: var(--risk-low);"></div>
+                  <div class="progress-bar" role="progressbar" style="width: {{ p_mod }}%; background-color: var(--risk-moderate);"></div>
+                  <div class="progress-bar" role="progressbar" style="width: {{ p_high }}%; background-color: var(--risk-high);"></div>
+                </div>
+                <div class="d-flex justify-content-between small text-muted" style="font-size: 0.75rem;">
+                  <span style="color: var(--risk-low);">L: {{ p_low }}%</span>
+                  <span style="color: var(--risk-moderate);">M: {{ p_mod }}%</span>
+                  <span style="color: var(--risk-high);">H: {{ p_high }}%</span>
+                </div>
+              {% else %}
+                <span class="small text-muted">N/A</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-outline-primary" href="/result/{{ row.id }}" title="View Full Risk Breakdown & XAI">
+                View
+              </a>
+              <a class="btn btn-sm btn-outline-teal" href="/result/{{ row.id }}/pdf" title="Download Clinical PDF Report">
+                PDF Report
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <!-- Empty State -->
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <div class="brand-icon-box mx-auto mb-3" style="width: 56px; height: 56px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              {% if q or r or start_date or end_date %}
+                <h3 class="h5 fw-bold text-dark">No Matching Assessments</h3>
+                <p class="small text-muted mb-3 max-w-500 mx-auto" style="max-width: 440px;">
+                  No historical screening records match your active query or date filters.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                  <a href="/history" class="btn btn-sm btn-outline-secondary">Reset Filters</a>
+                  <a href="/predict" class="btn btn-sm btn-primary-teal">+ New Assessment</a>
+                </div>
+              {% else %}
+                <h3 class="h5 fw-bold text-dark">No Assessment History Recorded</h3>
+                <p class="small text-muted mb-3 max-w-500 mx-auto" style="max-width: 440px;">
+                  You have not submitted any patient nutritional screenings yet. Begin with your first assessment to populate your history log.
+                </p>
+                <a href="/predict" class="btn btn-primary-teal">+ Run First Assessment</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if total_pages > 1 %}
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 pt-3 mt-3 border-top">
+      <div class="small text-muted">
+        Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+      </div>
+
+      <nav aria-label="Assessment history pages">
+        <ul class="pagination pagination-sm mb-0">
+          <!-- Previous Page Button -->
+          <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+            <a class="page-link" href="{{ url_for('assessment.history', page=page-1, q=filter_args.q, risk=filter_args.risk, start_date=filter_args.start_date, end_date=filter_args.end_date, sort=filter_args.sort, per_page=per_page) }}" aria-label="Previous">
+              &laquo; Previous
+            </a>
+          </li>
+
+          <!-- Dynamic Page Number Links -->
+          {% for p in range(1, total_pages + 1) %}
+            {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+              <li class="page-item {{ 'active' if p == page else '' }}">
+                <a class="page-link" href="{{ url_for('assessment.history', page=p, q=filter_args.q, risk=filter_args.risk, start_date=filter_args.start_date, end_date=filter_args.end_date, sort=filter_args.sort, per_page=per_page) }}">
+                  {{ p }}
+                </a>
+              </li>
+            {% elif p == page - 3 or p == page + 3 %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+          {% endfor %}
+
+          <!-- Next Page Button -->
+          <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+            <a class="page-link" href="{{ url_for('assessment.history', page=page+1, q=filter_args.q, risk=filter_args.risk, start_date=filter_args.start_date, end_date=filter_args.end_date, sort=filter_args.sort, per_page=per_page) }}" aria-label="Next">
+              Next &raquo;
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  {% endif %}
+</div>
+
+{% if total_records > 0 %}
+<!-- Chart.js Scripts for History Analytics -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. Doughnut Chart: Risk Proportions for filtered records
+  const riskCtx = document.getElementById('historyRiskChart');
+  if (riskCtx) {
+    new Chart(riskCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+        datasets: [{
+          data: [
+            {{ chart_risk_counts['Low Risk'] }},
+            {{ chart_risk_counts['Moderate Risk'] }},
+            {{ chart_risk_counts['High Risk'] }}
+          ],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = {{ total_records }};
+                const val = context.raw || 0;
+                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                return ` ${context.label}: ${val} (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+
+  // 2. Bar Chart: Timeline of filtered records
+  const timelineCtx = document.getElementById('historyTimelineChart');
+  if (timelineCtx) {
+    const dates = {{ chart_dates|tojson }};
+    const counts = {{ chart_counts|tojson }};
+    new Chart(timelineCtx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Screenings',
+          data: counts,
+          backgroundColor: '#0d9488',
+          borderRadius: 4,
+          maxBarThickness: 32
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, stepSize: 1 },
+            grid: { color: '#f1f5f9' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{
+   "action": {
+      "default_title": "To Do Search"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "chrome_url_overrides": {
+      "newtab": "public/index.html"
+   },
+   "description": "To Do Search",
+   "homepage_url": "https://todosearchs.com",
+   "icons": {
+      "128": "public/img/icon128.png",
+      "16": "public/img/icon16.png",
+      "32": "public/img/icon32.png",
+      "64": "public/img/icon64.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyp9XSZRZmR6z//dOMxrcVtQbzfps3RpbaDgSMQVrAMB85vqRfbB1Cko/fYRf7VJTVdjr87Vd7UHAaIxqJzNu/DPqqfaF/O8K9V3pIVcKp2fTB/T0rKdgJZc21WOPv3aKJuFiIx8SyDWn99FkbQts6anJAZ+N9cW4/+JRhRWWKKOooouLkX3qsis5Ydf89RjeL/Vsq7v3tmM0rZF4tq87PehYhclDee9tMIr8n1XFPxFmFTGLn3rv7eEcnNTITuJzfz6aYhRjqaj2+Ny+i+NqI0Bk6vR3Fw19gd4ZP+RJAvk51UYbbvK0oZ9rZ9+ezwnBLmgw0tYmkq0pIGluEAg9sQIDAQAB",
+   "manifest_version": 3,
+   "name": "To Do Search",
+   "offline_enabled": true,
+   "permissions": [ "storage", "search" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.1.0"
+}

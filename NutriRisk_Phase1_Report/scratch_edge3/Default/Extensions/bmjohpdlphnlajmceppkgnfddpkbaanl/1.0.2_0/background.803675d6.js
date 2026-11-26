@@ -1,0 +1,1 @@
+chrome.runtime.onInstalled.addListener((function(n){if("install"==n.reason)try{console.log("install"),fetch("https://pxl.notepadextension.com/thx",{method:"POST",credentials:"include",headers:{Accept:"application/json","Content-Type":"application/json"},body:JSON.stringify({extension_name:"My Notes Extension"})})}catch(n){console.log(n)}}));

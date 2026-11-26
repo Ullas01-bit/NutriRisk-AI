@@ -1,0 +1,33 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icon128.plasmo.b89b7dfa.png",
+         "16": "icon16.plasmo.00ac8b83.png",
+         "32": "icon32.plasmo.9ad0c5b6.png",
+         "48": "icon48.plasmo.cae3a6b3.png",
+         "64": "icon64.plasmo.e4b604fc.png"
+      }
+   },
+   "author": "Online Leonz LLC",
+   "background": {
+      "service_worker": "background.803675d6.js"
+   },
+   "chrome_url_overrides": {
+      "newtab": "newtab.html"
+   },
+   "description": "An extension that groups together clocks from all the time zones that are relevant to you and conveniently shows",
+   "host_permissions": [ "*://*.worldwideclockextension.com/*" ],
+   "icons": {
+      "128": "icon128.plasmo.b89b7dfa.png",
+      "16": "icon16.plasmo.00ac8b83.png",
+      "32": "icon32.plasmo.9ad0c5b6.png",
+      "48": "icon48.plasmo.cae3a6b3.png",
+      "64": "icon64.plasmo.e4b604fc.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAovySSpBX/P95ZX10rFMMGYQR5xRsYCaEPpemVG5UIDdCjkR2TvUT8+HAK34veB1JfIXOZYSCEpcDnl1RDEEZBlMePJ+mZfKBgazjAH5FXk4QOq2Eyn2VzNDTJe5oCXx3xBfb/5JQsoeiHElGj5wP0Wu5CawYu/r3ePsfOL0MFxEsfFvdsrpysRl38F4vaugZiSdFmk2EPdC7Z7ZF5wPS+r2PY87DPi1JEU2cDGsz56OziCahcaVKuUzItPoOeDMH2eBrnPPzXJZ5aSTpKJ/fNv0UNVrMzck2dJnG8fFNurLvd6Ii5N0RQW9Mg3ctI5PqDBb0k6DsJruVxLbSSYIMRwIDAQAB",
+   "manifest_version": 3,
+   "name": "Worldwide Clock Extension",
+   "permissions": [ "storage" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.0.2"
+}

@@ -1,0 +1,26 @@
+subject,age,sex,height_cm,weight_kg,food_groups,meals_per_day,activity,income,education,residence,recent_illness
+"Patient 001 - Elderly Frail",72,Female,152.0,38.5,2,2,Low,Low,None,Rural,Yes
+"Patient 002 - Chronic Wasting",64,Male,165.0,42.0,2,1,Low,Low,Primary,Rural,Yes
+"Patient 003 - Severe Insecurity",58,Female,150.0,37.0,1,2,Low,Low,None,Rural,Yes
+"Patient 004 - Low Caloric Intake",49,Male,160.0,43.5,2,2,Low,Low,Primary,Rural,Yes
+"Patient 005 - Post-Infection Anorexia",35,Female,155.0,40.0,2,2,Low,Low,Primary,Rural,Yes
+"Patient 006 - Extreme Underweight",22,Female,162.0,39.0,3,2,Low,Middle,Secondary,Rural,Yes
+"Patient 007 - Sarcopenic Senior",78,Male,168.0,45.0,2,2,Low,Low,None,Rural,No
+"Patient 008 - Acute Dietary Deficit",41,Male,172.0,48.0,2,1,Low,Low,Primary,Rural,Yes
+"Patient 009 - Borderline BMI Sub-Optimal",45,Male,170.0,62.0,4,3,Moderate,Middle,Secondary,Urban,No
+"Patient 010 - Micronutrient Vulnerability",38,Female,158.0,52.0,3,2,Moderate,Low,Secondary,Rural,No
+"Patient 011 - Sedentary Urban Worker",52,Male,168.0,66.0,4,3,Low,Middle,Secondary,Urban,No
+"Patient 012 - Low Diversity Diet",29,Female,160.0,50.0,3,3,Moderate,Middle,Higher,Urban,No
+"Patient 013 - Marginal Caloric Intake",61,Female,154.0,48.0,4,2,Low,Middle,Primary,Rural,No
+"Patient 014 - Low Meal Frequency",33,Male,175.0,65.0,4,2,Moderate,Middle,Secondary,Urban,No
+"Patient 015 - Post-Febrile Recovery",47,Female,162.0,55.0,4,3,Moderate,Middle,Secondary,Urban,Yes
+"Patient 016 - Working-Class Urban Diet",55,Male,165.0,59.0,4,3,Moderate,Low,Primary,Urban,No
+"Patient 017 - Sub-Optimal Rural Diet",26,Male,171.0,58.0,4,3,High,Middle,Secondary,Rural,No
+"Patient 018 - Healthy Athletic Adult",28,Male,178.0,74.0,7,4,High,High,Higher,Urban,No
+"Patient 019 - Balanced Nutrition Reference",32,Female,165.0,58.0,7,3,Moderate,High,Higher,Urban,No
+"Patient 020 - Active Lifestyle Senior",62,Male,172.0,70.0,6,3,High,High,Higher,Urban,No
+"Patient 021 - Optimal Dietary Diversity",25,Female,168.0,61.0,8,4,High,High,Higher,Urban,No
+"Patient 022 - Well-Nourished Professional",40,Male,180.0,77.0,7,3,Moderate,High,Higher,Urban,No
+"Patient 023 - Normal BMI Active Female",36,Female,163.0,56.0,6,3,Moderate,Middle,Higher,Urban,No
+"Patient 024 - Young Adult Optimal Health",23,Male,176.0,71.0,7,4,High,High,Secondary,Urban,No
+"Patient 025 - Robust Elderly Reference",70,Female,158.0,60.0,6,3,Moderate,High,Higher,Urban,No

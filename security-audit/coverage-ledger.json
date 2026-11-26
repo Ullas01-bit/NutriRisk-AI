@@ -1,0 +1,285 @@
+[
+  {
+    "surface": "admin-control-panel",
+    "boundary": "clinician-to-admin",
+    "subsystem": "authorization",
+    "attack_class": "privilege-escalation",
+    "starting_paths": [
+      "nutririsk/routes/admin.py",
+      "nutririsk/auth/utils.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#privilege-escalation",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#authorization-and-session"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "hunter-01",
+    "reviewed_paths": [
+      "nutririsk/routes/admin.py",
+      "nutririsk/auth/utils.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-01",
+        "reviewed_paths": [
+          "nutririsk/routes/admin.py",
+          "nutririsk/auth/utils.py"
+        ],
+        "invariant": "Admin endpoints must strictly enforce role == 'admin' and prevent self-demotion or deleting the sole admin.",
+        "method": "source",
+        "result": "Confirmed admin_required decorator checks session['role'] == 'admin' and change_user_role blocks self-demotion.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "admin-control-panel",
+      "boundary": "clinician-to-admin",
+      "subsystem": "authorization",
+      "attack_class": "privilege-escalation"
+    },
+    "coverage_id": "admin-control-panel::clinician-to-admin::authorization::privilege-escalation"
+  },
+  {
+    "surface": "database-query-interface",
+    "boundary": "application-to-sqlite",
+    "subsystem": "persistence",
+    "attack_class": "sql-injection",
+    "starting_paths": [
+      "nutririsk/db.py",
+      "nutririsk/routes/assessment.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#injection",
+    "selected_companion_blocks": [
+      "DATA-ISOLATION-AND-LIFECYCLE.md#storage"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "hunter-02",
+    "reviewed_paths": [
+      "nutririsk/db.py",
+      "nutririsk/routes/assessment.py",
+      "nutririsk/routes/admin.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-02",
+        "reviewed_paths": [
+          "nutririsk/db.py",
+          "nutririsk/routes/assessment.py",
+          "nutririsk/routes/admin.py"
+        ],
+        "invariant": "All SQL executions must strictly use parameterized placeholders (?) with zero dynamic string interpolation.",
+        "method": "source",
+        "result": "Verified 100% of SQLite database queries in nutririsk use parameterized tuples; no SQL injection surface found.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "database-query-interface",
+      "boundary": "application-to-sqlite",
+      "subsystem": "persistence",
+      "attack_class": "sql-injection"
+    },
+    "coverage_id": "database-query-interface::application-to-sqlite::persistence::sql-injection"
+  },
+  {
+    "surface": "http-assessment-forms",
+    "boundary": "client-to-server",
+    "subsystem": "clinical-triaging",
+    "attack_class": "input-validation-and-injection",
+    "starting_paths": [
+      "nutririsk/ml/features.py",
+      "nutririsk/routes/assessment.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#input-validation",
+    "selected_companion_blocks": [
+      "AI-AND-LLM.md#model-inputs"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "hunter-03",
+    "reviewed_paths": [
+      "nutririsk/ml/features.py",
+      "nutririsk/routes/assessment.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-03",
+        "reviewed_paths": [
+          "nutririsk/ml/features.py",
+          "nutririsk/routes/assessment.py"
+        ],
+        "invariant": "Clinical anthropometric and dietary inputs must be bound to validated ranges and choices.",
+        "method": "source",
+        "result": "Verified validate_and_parse_input enforces range limits on age, height, weight, food groups, and choices.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "http-assessment-forms",
+      "boundary": "client-to-server",
+      "subsystem": "clinical-triaging",
+      "attack_class": "input-validation-and-injection"
+    },
+    "coverage_id": "http-assessment-forms::client-to-server::clinical-triaging::input-validation-and-injection"
+  },
+  {
+    "surface": "http-auth-endpoints",
+    "boundary": "client-to-server",
+    "subsystem": "authentication",
+    "attack_class": "credential-and-session-hijacking",
+    "starting_paths": [
+      "nutririsk/auth/routes.py",
+      "nutririsk/auth/utils.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#authentication",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#authentication"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "hunter-04",
+    "reviewed_paths": [
+      "nutririsk/auth/routes.py",
+      "nutririsk/auth/utils.py",
+      "nutririsk/config.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-04",
+        "reviewed_paths": [
+          "nutririsk/auth/routes.py",
+          "nutririsk/auth/utils.py",
+          "nutririsk/config.py"
+        ],
+        "invariant": "One-time passwords must not be exposed in production API responses or rendered previews.",
+        "method": "source",
+        "result": "Found otp_preview was returned when DEMO_MODE was unset; resolved by conditioning otp_preview on DEMO_MODE.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "NUTRI-SEC-002-OTP-DEMO-PREVIEW-EXPOSURE"
+    ],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "http-auth-endpoints",
+      "boundary": "client-to-server",
+      "subsystem": "authentication",
+      "attack_class": "credential-and-session-hijacking"
+    },
+    "coverage_id": "http-auth-endpoints::client-to-server::authentication::credential-and-session-hijacking"
+  },
+  {
+    "surface": "http-response-headers",
+    "boundary": "server-to-client",
+    "subsystem": "security-middleware",
+    "attack_class": "security-header-misconfiguration",
+    "starting_paths": [
+      "nutririsk/security.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#configuration",
+    "selected_companion_blocks": [
+      "CLIENT-SIDE.md#security-headers"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "hunter-05",
+    "reviewed_paths": [
+      "nutririsk/security.py",
+      "nutririsk/templates/auth.html"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-05",
+        "reviewed_paths": [
+          "nutririsk/security.py",
+          "nutririsk/templates/auth.html"
+        ],
+        "invariant": "Security headers must not disable hardware capabilities needed for legitimate client-side authentication.",
+        "method": "source",
+        "result": "Found Permissions-Policy disabled camera completely; resolved by allowing camera=(self) for Face ID.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "NUTRI-SEC-001-PERMISSIONS-POLICY-CAMERA"
+    ],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "http-response-headers",
+      "boundary": "server-to-client",
+      "subsystem": "security-middleware",
+      "attack_class": "security-header-misconfiguration"
+    },
+    "coverage_id": "http-response-headers::server-to-client::security-middleware::security-header-misconfiguration"
+  },
+  {
+    "surface": "local-model-filesystem",
+    "boundary": "application-to-disk",
+    "subsystem": "ml-inference-engine",
+    "attack_class": "deserialization-and-path-traversal",
+    "starting_paths": [
+      "nutririsk/ml/prediction.py",
+      "nutririsk/security.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#path-traversal",
+    "selected_companion_blocks": [
+      "AI-AND-LLM.md#artifact-loading"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "new",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "hunter-06",
+    "reviewed_paths": [
+      "nutririsk/ml/prediction.py",
+      "nutririsk/security.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-06",
+        "reviewed_paths": [
+          "nutririsk/ml/prediction.py",
+          "nutririsk/security.py"
+        ],
+        "invariant": "Model artifact paths must be validated against directory traversal before joblib deserialization.",
+        "method": "source",
+        "result": "Verified validate_safe_model_path resolves realpath and checks file extension is .joblib within base directory.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "canonical_refs": {
+      "surface": "local-model-filesystem",
+      "boundary": "application-to-disk",
+      "subsystem": "ml-inference-engine",
+      "attack_class": "deserialization-and-path-traversal"
+    },
+    "coverage_id": "local-model-filesystem::application-to-disk::ml-inference-engine::deserialization-and-path-traversal"
+  }
+]

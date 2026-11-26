@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="979af5f276c7e61656942d2b9960048805e1269a10c0acfe3f0863c6e676ec75">
+  <title>NutriRisk AI — Predictive Nutritional Risk Assessment &amp; Early Malnutrition Stratification</title>
+  
+  <!-- PWA Web App Manifest & Mobile App Capabilities -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NutriRisk AI">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png">
+
+  <!-- Offline Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+  <!-- Custom Clinical Design System -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Offline Chart.js -->
+  <script src="/static/js/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Loading State Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="h5 fw-bold mb-1">Analyzing Clinical Parameters...</div>
+    <div class="small opacity-75">Computing XGBoost probability stratification &amp; occlusion feature attributions</div>
+  </div>
+
+  <div class="app-wrapper">
+    
+      <!-- Authenticated Sidebar (Inspired by Clinical Dashboard Reference) -->
+      <aside class="app-sidebar" id="appSidebar">
+        <a href="/" class="sidebar-brand">
+          <div class="brand-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div>
+            <div class="brand-title">NutriRisk AI</div>
+            <div class="brand-subtitle">Clinical Decision Support</div>
+          </div>
+        </a>
+
+        <div class="sidebar-nav-container">
+          <div class="sidebar-category-header">Personal Portal</div>
+          <a href="/dashboard" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            </span>
+            <span>Dashboard</span>
+          </a>
+
+          <div class="sidebar-category-header mt-3">Clinical Screening</div>
+          <a href="/predict" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </span>
+            <span>New Assessment</span>
+          </a>
+          <a href="/batch" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span>Batch Screening</span>
+          </a>
+          <a href="/history" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <span>Assessment History</span>
+          </a>
+
+          <div class="sidebar-category-header mt-3">Intelligence &amp; Data</div>
+          <a href="/analytics" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+            <span>Analytics Dashboard</span>
+          </a>
+          <a href="/model" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span>Model Benchmarks</span>
+          </a>
+
+          
+            <div class="sidebar-category-header mt-3">Administration</div>
+            <a href="/admin" class="sidebar-nav-link ">
+              <span class="sidebar-nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <span>Admin Console</span>
+            </a>
+          
+
+          <div class="sidebar-category-header mt-3">Account &amp; System</div>
+          <a href="javascript:;" class="sidebar-nav-link" id="sidebarInstallApp" style="color: var(--primary-teal);">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </span>
+            <span>Install NutriRisk App</span>
+          </a>
+          <a href="/profile" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <span>My Profile</span>
+          </a>
+          <a href="/" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </span>
+            <span>Project Overview</span>
+          </a>
+          <a href="/logout" class="sidebar-nav-link text-danger">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </span>
+            <span>Sign Out</span>
+          </a>
+        </div>
+
+        <div class="sidebar-user-footer">
+          <div class="d-flex align-items-center gap-2">
+            <div class="brand-icon-box" style="width: 32px; height: 32px; font-size: 0.9rem;">
+              U
+            </div>
+            <div class="overflow-hidden">
+              <div class="small fw-bold text-truncate">Ullas S</div>
+              <div class="small text-muted text-capitalize">admin Access</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <div class="app-content-workspace">
+        <header class="app-header">
+          <div class="d-flex align-items-center gap-3">
+            <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Toggle navigation">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+              NutriRisk AI v2.4 &bull; Clinical Prototype
+            </span>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-teal d-none align-items-center gap-2" id="btnInstallApp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <span>Install App</span>
+            </button>
+            <a href="/predict" class="btn btn-sm btn-primary-teal d-none d-md-inline-flex align-items-center gap-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Run Assessment</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+              <span class="small fw-semibold text-muted d-none d-sm-inline">Logged in as:</span>
+              <span class="badge bg-teal-subtle text-teal fw-bold" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+                Ullas S
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <main class="container-fluid p-4" style="max-width: 1280px; flex: 1;">
+          
+            
+          
+
+          
+  
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="container" style="max-width: 1140px;">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <div class="hero-pill-badge">
+        </div>
+        <h1 class="hero-headline">
+          Predict Nutritional Risk. <br>
+          <span style="color: var(--primary-teal);">Enable Early Intervention.</span>
+        </h1>
+        <p class="hero-subhead">
+          NutriRisk AI is an intelligent machine learning decision-support framework that combines multi-dimensional demographic, 
+          dietary, and socioeconomic parameters to stratify adult nutritional risk before acute malnutrition emerges.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="/predict" class="btn btn-primary-teal">
+            Start Assessment &rarr;
+          </a>
+          <a href="#methodology" class="btn btn-outline-slate">
+            Explore Methodology
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-5 mt-5 mt-lg-0">
+        <div class="clinical-card shadow-lg p-4 border-0" style="background: linear-gradient(145deg, #ffffff, #f0fdfa);">
+          <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <span class="badge bg-teal-subtle text-teal fw-bold" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+              Multi-Algorithm Ensemble
+            </span>
+            <span class="small text-muted">Adult Cohort (18+)</span>
+          </div>
+
+          <div class="mb-3">
+            <div class="small text-muted text-uppercase fw-bold">Active Best Model</div>
+            <div class="h3 fw-bold text-dark">XGBoost</div>
+            <div class="small text-muted">Trained across 6000 records with 5-fold cross-validation</div>
+          </div>
+
+          <div class="p-3 bg-white rounded-3 border mb-3">
+            <div class="d-flex justify-content-between small fw-bold mb-1">
+              <span>Risk Stratification Tiers</span>
+              <span class="text-teal" style="color: var(--primary-teal);">3 Categories</span>
+            </div>
+            <div class="d-flex gap-2">
+              <span class="risk-badge Low w-100 justify-content-center">Low Risk</span>
+              <span class="risk-badge Moderate w-100 justify-content-center">Moderate Risk</span>
+              <span class="risk-badge High w-100 justify-content-center">High Risk</span>
+            </div>
+          </div>
+
+          <div class="small text-muted">
+            Includes <strong>Explainable AI (XAI)</strong> factor attribution so clinicians can understand the drivers behind each score.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 1: Why Early Assessment Matters -->
+<section class="py-5 bg-white border-top border-bottom" id="about">
+  <div class="container" style="max-width: 1140px;">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <span class="badge bg-light text-muted border px-3 py-1 mb-2">The Clinical Imperative</span>
+      <h2 class="h2 fw-bold">Why Early Nutritional Risk Assessment Matters</h2>
+      <p class="text-muted">
+        Malnutrition is a complex, multi-factorial condition driven by inadequate intake, monotonous diets, 
+        chronic health conditions, and socioeconomic disparities.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feature-pillar-box">
+          <div class="pillar-icon-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 18"/><path d="m16 14 4-2-4-2"/><path d="m8 14-4-2 4-2"/><circle cx="12" cy="19" r="2"/></svg>
+          </div>
+          <h3 class="h5 fw-bold mb-2">Overcoming Single-Metric Blindspots</h3>
+          <p class="text-muted small mb-0">
+            Traditional clinical screenings rely overwhelmingly on Body Mass Index (BMI). 
+            However, individuals with normal or elevated BMI can still suffer from micronutrient deficiencies, sarcopenia, 
+            or poor dietary quality that single-indicator measurements miss.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-pillar-box">
+          <div class="pillar-icon-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3 class="h5 fw-bold mb-2">Preventative Clinical Stratification</h3>
+          <p class="text-muted small mb-0">
+            Stratifying patients into differentiated risk cohorts enables healthcare providers to prioritize 
+            targeted nutritional counseling and proactive interventions before acute clinical complications occur.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-pillar-box">
+          <div class="pillar-icon-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3 class="h5 fw-bold mb-2">Scalable Public Health Decision Support</h3>
+          <p class="text-muted small mb-0">
+            By collecting non-invasive demographic, dietary diversity, and lifestyle parameters, 
+            NutriRisk AI can be deployed in community health settings without requiring invasive or expensive laboratory equipment.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Stratification Tiers Explained -->
+<section class="py-5" style="background-color: var(--bg-page);">
+  <div class="container" style="max-width: 1140px;">
+    <div class="text-center mb-5">
+      <span class="badge bg-light text-muted border px-3 py-1 mb-2">Risk Stratification</span>
+      <h2 class="h2 fw-bold">Understanding Risk Classification Tiers</h2>
+      <p class="text-muted">The system computes posterior probabilities across three clinically distinct risk tiers.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="clinical-card h-100 border-start border-4 border-success">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="risk-badge Low">Low Risk</span>
+            <span class="text-success fw-bold">Tier 1</span>
+          </div>
+          <h3 class="h5 fw-bold text-dark">Adequate Nutritional Health</h3>
+          <p class="text-muted small mb-3">
+            Nutritional intake, dietary diversity scores, and anthropometric metrics are balanced. 
+            No acute clinical or socioeconomic vulnerabilities are present.
+          </p>
+          <div class="p-2 bg-light rounded text-muted small">
+            <strong>Recommended Action:</strong> Routine periodic health monitoring; maintenance of current dietary diversity.
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="clinical-card h-100 border-start border-4 border-warning">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="risk-badge Moderate">Moderate Risk</span>
+            <span class="text-warning fw-bold">Tier 2</span>
+          </div>
+          <h3 class="h5 fw-bold text-dark">Emerging Nutritional Vulnerability</h3>
+          <p class="text-muted small mb-3">
+            Sub-optimal indicators present, such as monotonous food groups, low meal frequency, 
+            recent acute illness, or socioeconomic barriers.
+          </p>
+          <div class="p-2 bg-light rounded text-muted small">
+            <strong>Recommended Action:</strong> Nutritional counseling, dietary diversification plan, follow-up screening in 3 months.
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="clinical-card h-100 border-start border-4 border-danger">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="risk-badge High">High Risk</span>
+            <span class="text-danger fw-bold">Tier 3</span>
+          </div>
+          <h3 class="h5 fw-bold text-dark">Acute Malnutrition Susceptibility</h3>
+          <p class="text-muted small mb-3">
+            High probability of undernutrition or severe metabolic strain driven by combined anthropometric deficits, 
+            extreme dietary insufficiency, illness, and poverty.
+          </p>
+          <div class="p-2 bg-light rounded text-muted small">
+            <strong>Recommended Action:</strong> Prompt clinical evaluation by a medical practitioner or specialized dietitian.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Machine Learning Methodology & Prediction Workflow -->
+<section class="py-5 bg-white border-top border-bottom" id="methodology">
+  <div class="container" style="max-width: 1140px;">
+    <div class="row align-items-center mb-5">
+      <div class="col-lg-6">
+        <span class="badge bg-light text-muted border px-3 py-1 mb-2">Technical Design</span>
+        <h2 class="h2 fw-bold">Machine Learning Pipeline &amp; Workflow</h2>
+        <p class="text-muted">
+          Our system follows a structured, reproducible machine learning engineering lifecycle designed to ensure data integrity, 
+          model interpretability, and robust generalization.
+        </p>
+      </div>
+      <div class="col-lg-6 text-lg-end">
+        <a href="/model" class="btn btn-outline-slate">
+          Inspect Model Architecture &amp; Metrics &rarr;
+        </a>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-3">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="workflow-pipeline-step">
+            <div class="step-index-circle">1</div>
+            <div class="fw-bold">Input Validation</div>
+          </div>
+          <p class="text-muted small mb-0">
+            Validates 11 demographic, dietary, and lifestyle parameters against clinical range constraints (Adults 18+).
+          </p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="workflow-pipeline-step">
+            <div class="step-index-circle">2</div>
+            <div class="fw-bold">Feature Engineering</div>
+          </div>
+          <p class="text-muted small mb-0">
+            Computes dynamic Body Mass Index (BMI = weight / height²) and standardizes continuous numerical columns.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="workflow-pipeline-step">
+            <div class="step-index-circle">3</div>
+            <div class="fw-bold">Ensemble Inference</div>
+          </div>
+          <p class="text-muted small mb-0">
+            Generates multi-class risk probabilities across evaluated classifiers (Logistic Regression, Trees, Random Forest, Gradient Boosting, XGBoost).
+          </p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="workflow-pipeline-step">
+            <div class="step-index-circle">4</div>
+            <div class="fw-bold">Explainability (XAI)</div>
+          </div>
+          <p class="text-muted small mb-0">
+            Computes occlusion factor attributions, showing which parameters pushed toward risk versus protective indicators.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Section 5: Technology Stack -->
+<section class="py-5 bg-white border-top">
+  <div class="container text-center" style="max-width: 1140px;">
+    <span class="badge bg-light text-muted border px-3 py-1 mb-2">Technical Foundations</span>
+    <h2 class="h3 fw-bold mb-4">Robust Open-Source Technology Stack</h2>
+    <div class="d-flex justify-content-center flex-wrap gap-2">
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Python 3.12</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Flask 3.x</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">scikit-learn</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">XGBoost</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Pandas &amp; NumPy</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Chart.js</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Bootstrap 5</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">SQLite</span>
+      <span class="badge bg-light text-dark border px-3 py-2 fs-6">Joblib</span>
+    </div>
+  </div>
+</section>
+
+
+
+          <!-- Clinical Disclaimer Card -->
+          <div class="card border-0 bg-light p-3 mt-4 text-muted small border-start border-4 border-warning">
+            <strong>Decision-Support Disclaimer:</strong> NutriRisk AI is an academic clinical decision-support research prototype developed for screening and risk stratification. It does not provide medical diagnoses or replace professional clinical evaluations.
+          </div>
+        </main>
+
+        <footer class="text-center py-3 text-muted small border-top bg-white mt-auto">
+          NutriRisk AI &bull; Healthcare Intelligence &amp; Clinical Decision-Support Framework
+        </footer>
+      </div>
+
+    
+  </div>
+
+  <!-- PWA & Mobile App Installation Modal -->
+  <div class="modal fade" id="pwaInstallModal" tabindex="-1" aria-labelledby="pwaInstallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header text-white" style="background-color: var(--primary-teal);">
+          <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="pwaInstallModalLabel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span>Install NutriRisk AI App</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <img src="/static/img/icon-192.png" alt="NutriRisk Logo" width="56" height="56" class="rounded-3 shadow-sm">
+            <div>
+              <h6 class="fw-bold mb-0">NutriRisk AI Standalone App</h6>
+              <div class="small text-muted">Install on your phone, tablet, or desktop for 1-click launch and offline access.</div>
+            </div>
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Platform Installation Guide:</strong>
+            <ul class="mb-0 ps-3 mt-1 text-muted">
+              <li><strong>Android &amp; Chrome:</strong> Click the "Install Now" button below or tap the browser menu &rarr; <em>Install App</em>.</li>
+              <li><strong>iPhone / iPad (Safari):</strong> Tap the <strong>Share</strong> button at the bottom &rarr; tap <strong>Add to Home Screen</strong>.</li>
+              <li><strong>Windows &amp; Mac:</strong> Click the <strong>Install</strong> icon in the address bar or launch via <code>run_app.bat</code>.</li>
+            </ul>
+          </div>
+
+          <button type="button" class="btn btn-primary-teal w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2" id="btnModalTriggerInstall">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Install Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offline Bootstrap Bundle JS -->
+  <script src="/static/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

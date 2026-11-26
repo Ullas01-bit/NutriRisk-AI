@@ -1,0 +1,162 @@
+[
+  {
+    "verdict": "confirmed",
+    "fingerprint": "NUTRI-SEC-001-PERMISSIONS-POLICY-CAMERA",
+    "title": "Permissions-Policy Header Blocked Camera Access for Face ID Biometrics",
+    "description": "The security headers configuration initially set Permissions-Policy to 'camera=()', which completely revoked camera access for all execution contexts, preventing legitimate client-side Face ID biometric enrollment and authentication.",
+    "root_cause": "Overly broad device hardware restriction in nutririsk/security.py specifying camera=() instead of camera=(self).",
+    "intended_behavior": "Device permissions should permit camera usage originating from the application's own origin ('self') to enable biometric scanning while restricting geolocation and microphone.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "nutririsk/templates/auth.html",
+        "line": 195,
+        "scope": "navigator.mediaDevices.getUserMedia",
+        "description": "Client script requests camera stream for Face ID verification."
+      },
+      {
+        "kind": "propagation",
+        "file": "nutririsk/security.py",
+        "line": 102,
+        "scope": "add_security_headers",
+        "description": "Security header middleware sets Permissions-Policy header on HTTP response."
+      },
+      {
+        "kind": "sink",
+        "file": "nutririsk/security.py",
+        "line": 102,
+        "scope": "response.headers",
+        "description": "Browser denies camera access due to camera=() directive."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "nutririsk/security.py",
+        "line": 102,
+        "description": "Original line: response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()'"
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "user_interaction",
+        "description": "User clicks Sign In with Face ID on a modern browser enforcing Permissions-Policy."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "A user or attacker cannot execute Face ID authentication because the browser sandbox blocks the webcam.",
+      "payloads": [
+        "GET /login HTTP/1.1"
+      ],
+      "instructions": [
+        "Navigate to /login",
+        "Click Sign In with Face ID",
+        "Observe camera permission denied error in browser console."
+      ],
+      "observed_result": "Browser blocks navigator.mediaDevices.getUserMedia with NotAllowedError / SecurityError."
+    },
+    "remediation": {
+      "strategy": "Update Permissions-Policy to allow camera for 'self' origin while keeping geolocation and microphone restricted.",
+      "code_changes": [
+        {
+          "file_name": "nutririsk/security.py",
+          "fixed_code": "response.headers['Permissions-Policy'] = 'geolocation=(), camera=(self), microphone=()'"
+        }
+      ]
+    },
+    "severity": {
+      "likelihood": {
+        "score": "high",
+        "reason": "Affects 100% of users attempting to use Face ID on modern browsers."
+      },
+      "impact": {
+        "score": "medium",
+        "reason": "Denial of biometric authentication feature."
+      },
+      "overall_severity": "medium"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Confirmed via source inspection and W3C Permissions Policy specification."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "NUTRI-SEC-002-OTP-DEMO-PREVIEW-EXPOSURE",
+    "title": "One-Time Password Code Preview Leaked in JSON Response When DEMO_MODE Unset",
+    "description": "The /send-otp endpoint was returning otp_preview unconditionally in the API JSON response, which would allow unauthorized account takeover in production if an attacker intercepted or received the JSON response.",
+    "root_cause": "The send_otp endpoint returned otp_preview without checking if the environment was running in production mode.",
+    "intended_behavior": "In production environments, otp_preview must be None and codes must only be dispatched out-of-band via authenticated channels.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "nutririsk/auth/routes.py",
+        "line": 135,
+        "scope": "send_otp",
+        "description": "Client POSTs to /auth/send-otp with an email address."
+      },
+      {
+        "kind": "propagation",
+        "file": "nutririsk/auth/routes.py",
+        "line": 147,
+        "scope": "create_otp",
+        "description": "System generates 6-digit cryptographic OTP code."
+      },
+      {
+        "kind": "sink",
+        "file": "nutririsk/auth/routes.py",
+        "line": 153,
+        "scope": "jsonify response",
+        "description": "JSON payload returned to client included raw otp_preview."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "nutririsk/auth/routes.py",
+        "line": 153,
+        "description": "Raw otp_preview was returned in JSON payload without production guard."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "system_configuration",
+        "description": "Application deployed without explicit DEMO_MODE=0 setting."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Attacker calls POST /auth/send-otp with victim email and reads the 6-digit code from the HTTP response body.",
+      "payloads": [
+        "{\"email\": \"victim@hospital.org\", \"purpose\": \"login\"}"
+      ],
+      "instructions": [
+        "POST to /auth/send-otp with target email",
+        "Inspect JSON response body",
+        "Extract otp_preview value and call /auth/verify-otp."
+      ],
+      "observed_result": "Attacker receives the 6-digit verification code in the response body."
+    },
+    "remediation": {
+      "strategy": "Guard otp_preview disclosure by checking DEMO_MODE, TESTING, and FLASK_ENV flags so that in production otp_preview is strictly None.",
+      "code_changes": [
+        {
+          "file_name": "nutririsk/auth/routes.py",
+          "fixed_code": "is_demo = current_app.config.get('DEMO_MODE', False) or current_app.config.get('TESTING', False)\nreturn jsonify({'status': 'success', 'message': f'Verification code sent to {email}.', 'otp_preview': otp_code if is_demo else None, 'expires_in': 600})"
+        }
+      ]
+    },
+    "severity": {
+      "likelihood": {
+        "score": "medium",
+        "reason": "Requires deployment to production without setting DEMO_MODE=0."
+      },
+      "impact": {
+        "score": "high",
+        "reason": "Bypasses authentication and allows passwordless account takeover."
+      },
+      "overall_severity": "high"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Demonstrated via API route analysis and unit test assertion."
+    }
+  }
+]

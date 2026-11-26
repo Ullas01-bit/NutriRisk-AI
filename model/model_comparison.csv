@@ -1,0 +1,6 @@
+Model,Accuracy,Precision (Macro),Recall (Macro),F1 (Macro),ROC-AUC (OVR),CV F1 Mean,CV F1 Std,Is Best
+Logistic Regression,0.7067,0.7087,0.7068,0.7077,0.8711,0.7084,0.0132,False
+Decision Tree,0.7417,0.7587,0.7415,0.7471,0.882,0.7468,0.0143,False
+Random Forest,0.7667,0.7729,0.766,0.7688,0.914,0.7769,0.0098,False
+Gradient Boosting,0.7775,0.7882,0.776,0.7806,0.9237,0.7894,0.0151,False
+XGBoost,0.785,0.791,0.7861,0.7883,0.9241,0.7886,0.0163,True

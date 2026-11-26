@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {{ 'Sign In' if mode=='login' else ('Create Account' if mode=='register' else ('Passwordless OTP Sign In' if mode=='otp_login' else 'Reset Password')) }} — NutriRisk AI
+{% endblock %}
+
+{% macro auth_card_content() %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+      <div class="clinical-card shadow-lg p-4 p-md-5 border-0">
+        <!-- Header -->
+        <div class="text-center mb-4">
+          <div class="brand-icon-box mx-auto mb-3" style="width: 48px; height: 48px;">
+            {% if mode == 'login' %}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            {% elif mode == 'register' %}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            {% elif mode == 'otp_login' %}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+            {% else %}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            {% endif %}
+          </div>
+          <h1 class="h3 fw-bold text-dark">
+            {{ 'Welcome Back' if mode=='login' else ('Create Clinical Account' if mode=='register' else ('Sign In with OTP' if mode=='otp_login' else 'Reset Password')) }}
+          </h1>
+          <p class="text-muted small">
+            {{ 'Enter your credentials to access the nutritional risk dashboard.' if mode=='login' else ('Register to assess nutritional risk and track patient history.' if mode=='register' else ('Enter your registered email to receive a secure 6-digit one-time password.' if mode=='otp_login' else 'Demo password reset for development and academic evaluation.')) }}
+          </p>
+        </div>
+
+        {% if mode == 'reset' %}
+          <div class="alert alert-info small py-2 mb-3" role="alert">
+            <strong>Development Notice:</strong> This reset flow operates in demonstration mode. In production deployments, a secure, time-limited token is delivered via authenticated SMTP.
+          </div>
+        {% endif %}
+
+        {% if mode == 'otp_login' %}
+          <!-- Dedicated Server-Rendered OTP Login Form -->
+          <form method="post" action="/otp-login">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="{{ 'verify' if otp_sent else 'send' }}">
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-muted">Registered Email Address <span class="text-danger">*</span></label>
+              <div class="custom-input-group">
+                <span class="input-leading-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <input type="email" name="email" value="{{ email or '' }}" class="form-control-clinical" placeholder="name@institution.edu" required {{ 'readonly' if otp_sent else '' }}>
+              </div>
+            </div>
+
+            {% if otp_sent %}
+              {% if demo_otp %}
+                <div class="alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-3 small" role="alert">
+                  <div>
+                    <strong>Demo Code:</strong> <span class="badge bg-teal fs-6 font-monospace">{{ demo_otp }}</span>
+                  </div>
+                  <span class="text-muted" style="font-size: 0.75rem;">Valid for 10 min</span>
+                </div>
+              {% endif %}
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">6-Digit Verification Code <span class="text-danger">*</span></label>
+                <div class="custom-input-group">
+                  <span class="input-leading-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </span>
+                  <input type="text" name="otp" class="form-control-clinical font-monospace text-center fs-5" maxlength="6" pattern="[0-9]{6}" placeholder="------" required autofocus>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary-teal w-100 justify-content-center py-2 mt-2 rounded-3 shadow-sm">
+                Verify Code &amp; Sign In →
+              </button>
+
+              <div class="text-center mt-3">
+                <a href="/otp-login" class="text-muted small text-decoration-none">Use a different email or request new code</a>
+              </div>
+            {% else %}
+              <button type="submit" class="btn btn-primary-teal w-100 justify-content-center py-2 mt-2 rounded-3 shadow-sm">
+                Send 6-Digit Code →
+              </button>
+            {% endif %}
+          </form>
+
+        {% else %}
+          <!-- Standard Form (Login / Register / Reset) -->
+          <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if mode == 'register' %}
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">Full Name <span class="text-danger">*</span></label>
+                <div class="custom-input-group">
+                  <span class="input-leading-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </span>
+                  <input type="text" name="name" class="form-control-clinical" placeholder="e.g. Dr. Jane Smith" required>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-muted">Email Address <span class="text-danger">*</span></label>
+              <div class="custom-input-group">
+                <span class="input-leading-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <input type="email" name="email" class="form-control-clinical" placeholder="name@institution.edu" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-muted">
+                {{ 'New Password' if mode=='reset' else 'Password' }} <span class="text-danger">*</span>
+              </label>
+              <div class="custom-input-group">
+                <span class="input-leading-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <input type="password" name="password" class="form-control-clinical" placeholder="Minimum 6 characters" minlength="6" required>
+              </div>
+            </div>
+
+            {% if mode == 'register' or mode == 'reset' %}
+              <div class="mb-4">
+                <label class="form-label small fw-bold text-muted">Confirm Password <span class="text-danger">*</span></label>
+                <div class="custom-input-group">
+                  <span class="input-leading-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </span>
+                  <input type="password" name="confirm_password" class="form-control-clinical" placeholder="Re-enter password" minlength="6" required>
+                </div>
+              </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary-teal w-100 justify-content-center py-2 mt-2 rounded-3 shadow-sm">
+              {{ 'Sign In →' if mode=='login' else ('Create Account →' if mode=='register' else 'Update Password →') }}
+            </button>
+
+            {% if mode == 'login' %}
+              <div class="d-flex align-items-center my-3">
+                <hr class="flex-grow-1 my-0">
+                <span class="px-3 text-muted small fw-semibold">OR AUTHENTICATE WITH</span>
+                <hr class="flex-grow-1 my-0">
+              </div>
+
+              <div class="row g-2">
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-teal w-100 justify-content-center py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenOtpModal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="small fw-semibold">OTP Code</span>
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-secondary w-100 justify-content-center py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenFaceModal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span class="small fw-semibold">Face ID</span>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+          </form>
+        {% endif %}
+
+        <div class="mt-4 pt-3 border-top text-center small text-muted">
+          {% if mode == 'login' %}
+            Don't have an account yet? <a href="/register" class="fw-bold text-teal text-decoration-none">Register here</a>
+            <span class="mx-2">&bull;</span>
+            <a href="/reset" class="text-muted text-decoration-none">Forgot password?</a>
+          {% elif mode == 'otp_login' %}
+            Prefer standard credentials? <a href="/login" class="fw-bold text-teal text-decoration-none">Sign in with password</a>
+            <span class="mx-2">&bull;</span>
+            <a href="/register" class="text-muted text-decoration-none">Create account</a>
+          {% elif mode == 'register' %}
+            Already registered? <a href="/login" class="fw-bold text-teal text-decoration-none">Sign in here</a>
+          {% else %}
+            Remember your credentials? <a href="/login" class="fw-bold text-teal text-decoration-none">Back to login</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if mode == 'login' %}
+<!-- OTP Verification Modal -->
+<div class="modal fade" id="otpLoginModal" tabindex="-1" aria-labelledby="otpLoginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-teal text-white border-0 py-3">
+        <h5 class="modal-title fs-6 fw-bold d-flex align-items-center gap-2" id="otpLoginModalLabel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+          <span>NutriRisk AI &bull; OTP Verification</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Step 1: Request OTP -->
+        <div id="otpStep1">
+          <p class="text-muted small mb-3">
+            Enter your registered email address to receive an instantaneous 6-digit one-time verification passcode.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Registered Email Address</label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </span>
+              <input type="email" id="modalOtpEmail" class="form-control-clinical" placeholder="name@institution.edu" required>
+            </div>
+          </div>
+          <div id="otpStep1Alert" class="alert small py-2 d-none" role="alert"></div>
+          <button type="button" class="btn btn-primary-teal w-100 justify-content-center py-2 rounded-3 shadow-sm" id="btnRequestOtp">
+            <span>Send 6-Digit Code →</span>
+          </button>
+        </div>
+
+        <!-- Step 2: Enter OTP -->
+        <div id="otpStep2" class="d-none">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="small text-muted">Code dispatched to: <strong id="otpTargetEmail" class="text-dark"></strong></span>
+            <button type="button" class="btn btn-link btn-sm p-0 text-teal text-decoration-none" id="btnChangeOtpEmail">Change</button>
+          </div>
+
+          <!-- Academic Demo Code Banner -->
+          <div id="otpDemoBanner" class="alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-3 small" role="alert">
+            <div>
+              <strong>Demo Code:</strong> <span id="otpDemoCodeDisplay" class="badge bg-teal fs-6 font-monospace">123456</span>
+            </div>
+            <span class="text-muted" style="font-size: 0.75rem;">Instant evaluation</span>
+          </div>
+
+          <div class="mb-3 text-center">
+            <label class="form-label small fw-bold text-muted d-block text-start">Enter 6-Digit Code</label>
+            <input type="text" id="modalOtpCode" class="form-control form-control-lg text-center font-monospace fs-4 fw-bold letter-spacing-lg" maxlength="6" pattern="[0-9]{6}" placeholder="------" autocomplete="one-time-code">
+            <div class="small text-muted mt-2 d-flex justify-content-between align-items-center">
+              <span id="otpTimerDisplay">Expires in 10:00</span>
+              <button type="button" class="btn btn-link btn-sm p-0 text-teal text-decoration-none" id="btnResendOtp">Resend code</button>
+            </div>
+          </div>
+
+          <div id="otpStep2Alert" class="alert small py-2 d-none" role="alert"></div>
+
+          <div class="d-flex gap-2 justify-content-end mt-4">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary-teal btn-sm px-4 d-flex align-items-center gap-2" id="btnSubmitOtp">
+              <span>Verify &amp; Sign In</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Face ID Biometric Authentication Modal -->
+<div class="modal fade" id="faceLoginModal" tabindex="-1" aria-labelledby="faceLoginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-dark text-white border-0 py-3">
+        <h5 class="modal-title fs-6 fw-bold d-flex align-items-center gap-2" id="faceLoginModalLabel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>NutriRisk AI &bull; Face ID Verification</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnCloseFaceModal"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3 text-start">
+          <label class="form-label small fw-bold text-muted">Registered Email (Auto-Detect or Specify)</label>
+          <input type="email" id="faceLoginEmail" class="form-control form-control-sm" placeholder="name@institution.edu">
+        </div>
+
+        <!-- Video Camera Viewport -->
+        <div class="position-relative mx-auto rounded-3 overflow-hidden bg-black mb-3" style="max-width: 360px; height: 260px;">
+          <video id="faceLoginVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+          
+          <!-- Target Oval -->
+          <div class="position-absolute top-50 start-50 translate-middle rounded-circle border border-2 border-teal opacity-75" style="width: 180px; height: 210px; box-shadow: 0 0 20px rgba(13, 148, 136, 0.5);"></div>
+          
+          <!-- Scanning Laser Bar -->
+          <div id="scannerLaser" class="position-absolute start-0 end-0 bg-teal" style="height: 3px; top: 20%; box-shadow: 0 0 10px #0d9488; animation: scanMove 2s infinite alternate;"></div>
+          
+          <!-- Status Banner -->
+          <div id="cameraStatusBadge" class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white py-1 small">
+            Align your face within the frame
+          </div>
+        </div>
+
+        <canvas id="faceCaptureCanvas" style="display: none;"></canvas>
+
+        <div id="faceAlertBox" class="alert small py-2 d-none" role="alert"></div>
+
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal" id="btnCancelFace">Cancel</button>
+          <button type="button" class="btn btn-primary-teal btn-sm px-4 d-flex align-items-center gap-2" id="btnScanFace">
+            <span>Scan &amp; Authenticate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes scanMove {
+  0% { top: 15%; opacity: 0.8; }
+  100% { top: 85%; opacity: 0.8; }
+}
+.letter-spacing-lg {
+  letter-spacing: 0.35rem;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const getCsrfToken = () => {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute("content") : "";
+  };
+
+  /* ==========================================================
+     OTP Verification Modal Logic
+     ========================================================== */
+  const btnOpenOtp = document.getElementById("btnOpenOtpModal");
+  if (btnOpenOtp) {
+    const otpModalEl = document.getElementById("otpLoginModal");
+    const otpModal = new bootstrap.Modal(otpModalEl);
+    const step1 = document.getElementById("otpStep1");
+    const step2 = document.getElementById("otpStep2");
+    const emailInput = document.getElementById("modalOtpEmail");
+    const codeInput = document.getElementById("modalOtpCode");
+    const btnRequest = document.getElementById("btnRequestOtp");
+    const btnSubmit = document.getElementById("btnSubmitOtp");
+    const btnResend = document.getElementById("btnResendOtp");
+    const btnChange = document.getElementById("btnChangeOtpEmail");
+    const step1Alert = document.getElementById("otpStep1Alert");
+    const step2Alert = document.getElementById("otpStep2Alert");
+    const targetEmailDisplay = document.getElementById("otpTargetEmail");
+    const demoBanner = document.getElementById("otpDemoBanner");
+    const demoCodeDisplay = document.getElementById("otpDemoCodeDisplay");
+    const timerDisplay = document.getElementById("otpTimerDisplay");
+
+    let timerInterval = null;
+    let secondsRemaining = 600;
+
+    function startOtpTimer(duration = 600) {
+      clearInterval(timerInterval);
+      secondsRemaining = duration;
+      const updateTimer = () => {
+        const mins = Math.floor(secondsRemaining / 60);
+        const secs = secondsRemaining % 60;
+        timerDisplay.textContent = `Expires in ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        if (secondsRemaining <= 0) {
+          clearInterval(timerInterval);
+          timerDisplay.textContent = "Expired. Please request a new code.";
+          showStep2Alert("danger", "Verification code expired. Please click Resend code.");
+        }
+        secondsRemaining--;
+      };
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function showStep1Alert(type, msg) {
+      step1Alert.className = `alert alert-${type} small py-2`;
+      step1Alert.textContent = msg;
+      step1Alert.classList.remove("d-none");
+    }
+
+    function showStep2Alert(type, msg) {
+      step2Alert.className = `alert alert-${type} small py-2`;
+      step2Alert.textContent = msg;
+      step2Alert.classList.remove("d-none");
+    }
+
+    btnOpenOtp.addEventListener("click", function() {
+      // Pre-fill email from main form if present
+      const mainEmailInput = document.querySelector('form input[type="email"]');
+      if (mainEmailInput && mainEmailInput.value.trim()) {
+        emailInput.value = mainEmailInput.value.trim();
+      }
+      step1.classList.remove("d-none");
+      step2.classList.add("d-none");
+      step1Alert.classList.add("d-none");
+      step2Alert.classList.add("d-none");
+      otpModal.show();
+      setTimeout(() => emailInput.focus(), 300);
+    });
+
+    async function sendOtpRequest() {
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email) {
+        showStep1Alert("danger", "Please enter your registered email address.");
+        return;
+      }
+
+      btnRequest.disabled = true;
+      btnRequest.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Sending code...`;
+      step1Alert.classList.add("d-none");
+
+      try {
+        const resp = await fetch("/auth/send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken()
+          },
+          body: JSON.stringify({ email: email, purpose: "login" })
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === "success") {
+          targetEmailDisplay.textContent = email;
+          if (data.otp_preview) {
+            demoCodeDisplay.textContent = data.otp_preview;
+            demoBanner.classList.remove("d-none");
+          } else {
+            demoBanner.classList.add("d-none");
+          }
+          step1.classList.add("d-none");
+          step2.classList.remove("d-none");
+          codeInput.value = "";
+          step2Alert.classList.add("d-none");
+          startOtpTimer(data.expires_in || 600);
+          setTimeout(() => codeInput.focus(), 300);
+        } else {
+          showStep1Alert("danger", data.message || "Failed to dispatch verification code.");
+        }
+      } catch (e) {
+        showStep1Alert("danger", "Network error communicating with OTP endpoint.");
+      } finally {
+        btnRequest.disabled = false;
+        btnRequest.innerHTML = "<span>Send 6-Digit Code →</span>";
+      }
+    }
+
+    btnRequest.addEventListener("click", sendOtpRequest);
+    emailInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendOtpRequest();
+      }
+    });
+
+    btnResend.addEventListener("click", async function() {
+      btnResend.disabled = true;
+      btnResend.textContent = "Resending...";
+      try {
+        const resp = await fetch("/auth/send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken()
+          },
+          body: JSON.stringify({ email: emailInput.value.trim().toLowerCase(), purpose: "login" })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.status === "success") {
+          if (data.otp_preview) {
+            demoCodeDisplay.textContent = data.otp_preview;
+            demoBanner.classList.remove("d-none");
+          }
+          showStep2Alert("success", "A new 6-digit code has been generated.");
+          startOtpTimer(data.expires_in || 600);
+        } else {
+          showStep2Alert("danger", data.message || "Could not resend verification code.");
+        }
+      } catch (err) {
+        showStep2Alert("danger", "Network error during code resend.");
+      } finally {
+        btnResend.disabled = false;
+        btnResend.textContent = "Resend code";
+      }
+    });
+
+    btnChange.addEventListener("click", function() {
+      clearInterval(timerInterval);
+      step2.classList.add("d-none");
+      step1.classList.remove("d-none");
+      step1Alert.classList.add("d-none");
+      emailInput.focus();
+    });
+
+    async function verifyOtpSubmission() {
+      const email = emailInput.value.trim().toLowerCase();
+      const otp = codeInput.value.trim();
+
+      if (!otp || otp.length !== 6) {
+        showStep2Alert("danger", "Please enter the complete 6-digit verification code.");
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Verifying...`;
+      step2Alert.classList.add("d-none");
+
+      try {
+        const resp = await fetch("/auth/verify-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken()
+          },
+          body: JSON.stringify({ email: email, otp: otp, purpose: "login" })
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === "success") {
+          showStep2Alert("success", (data.message || "Login verified successfully!") + " Redirecting...");
+          clearInterval(timerInterval);
+          setTimeout(() => {
+            window.location.href = data.redirect || "/dashboard";
+          }, 800);
+        } else {
+          showStep2Alert("danger", data.message || "Invalid or expired verification code.");
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = "<span>Verify &amp; Sign In</span>";
+        }
+      } catch (e) {
+        showStep2Alert("danger", "Network error during verification.");
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = "<span>Verify &amp; Sign In</span>";
+      }
+    }
+
+    btnSubmit.addEventListener("click", verifyOtpSubmission);
+    codeInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        verifyOtpSubmission();
+      }
+    });
+
+    otpModalEl.addEventListener("hidden.bs.modal", function() {
+      clearInterval(timerInterval);
+    });
+  }
+
+  /* ==========================================================
+     Face ID Biometric Authentication Logic
+     ========================================================== */
+  const btnOpenModal = document.getElementById("btnOpenFaceModal");
+  if (btnOpenModal) {
+    const modalEl = document.getElementById("faceLoginModal");
+    const modal = new bootstrap.Modal(modalEl);
+    const video = document.getElementById("faceLoginVideo");
+    const canvas = document.getElementById("faceCaptureCanvas");
+    const btnScan = document.getElementById("btnScanFace");
+    const emailInput = document.getElementById("faceLoginEmail");
+    const alertBox = document.getElementById("faceAlertBox");
+    const statusBadge = document.getElementById("cameraStatusBadge");
+    let stream = null;
+
+    btnOpenModal.addEventListener("click", async function() {
+      modal.show();
+      alertBox.classList.add("d-none");
+      statusBadge.textContent = "Requesting camera access...";
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = stream;
+        statusBadge.textContent = "Camera active. Align face inside frame.";
+      } catch (err) {
+        console.warn("Webcam not available:", err);
+        statusBadge.textContent = "Camera unavailable. You may test with simulation scan.";
+        showAlert("info", "Webcam access unavailable or permission denied. Click Scan & Authenticate to use biometric simulation mode.");
+      }
+    });
+
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+    }
+
+    modalEl.addEventListener("hidden.bs.modal", stopStream);
+
+    function showAlert(type, msg) {
+      alertBox.className = "alert alert-" + type + " small py-2";
+      alertBox.textContent = msg;
+      alertBox.classList.remove("d-none");
+    }
+
+    btnScan.addEventListener("click", async function() {
+      btnScan.disabled = true;
+      btnScan.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Verifying...`;
+      
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      const ctx = canvas.getContext("2d");
+      if (stream && video.videoWidth > 0) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#0d9488";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "14px sans-serif";
+        ctx.fillText("NutriRisk Biometric Frame", 20, 100);
+      }
+      const imageData = canvas.toDataURL("image/jpeg", 0.8);
+      const email = emailInput.value.trim();
+
+      try {
+        const resp = await fetch("/auth/face-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken()
+          },
+          body: JSON.stringify({ email: email, image_data: imageData })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.status === "success") {
+          showAlert("success", data.message + " Redirecting...");
+          stopStream();
+          setTimeout(() => {
+            window.location.href = data.redirect;
+          }, 800);
+        } else {
+          showAlert("danger", data.message || "Face ID verification failed.");
+          btnScan.disabled = false;
+          btnScan.innerHTML = "<span>Scan &amp; Authenticate</span>";
+        }
+      } catch (e) {
+        showAlert("danger", "Network error communicating with Face ID endpoint.");
+        btnScan.disabled = false;
+        btnScan.innerHTML = "<span>Scan &amp; Authenticate</span>";
+      }
+    });
+  }
+});
+</script>
+{% endif %}
+{% endmacro %}
+
+{% block body %}
+  {{ auth_card_content() }}
+{% endblock %}
+
+{% block public_body %}
+  {{ auth_card_content() }}
+{% endblock %}

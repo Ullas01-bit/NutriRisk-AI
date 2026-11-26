@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="4c54ed53f246f58ed5ac17711f8530ed3844485af05b2f1b5be1044a43f50e50">
+  <title>Nutritional Assessment &amp; Risk Stratification — NutriRisk AI</title>
+  
+  <!-- PWA Web App Manifest & Mobile App Capabilities -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NutriRisk AI">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png">
+
+  <!-- Offline Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+  <!-- Custom Clinical Design System -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Offline Chart.js -->
+  <script src="/static/js/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Loading State Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="h5 fw-bold mb-1">Analyzing Clinical Parameters...</div>
+    <div class="small opacity-75">Computing XGBoost probability stratification &amp; occlusion feature attributions</div>
+  </div>
+
+  <div class="app-wrapper">
+    
+      <!-- Authenticated Sidebar (Inspired by Clinical Dashboard Reference) -->
+      <aside class="app-sidebar" id="appSidebar">
+        <a href="/" class="sidebar-brand">
+          <div class="brand-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div>
+            <div class="brand-title">NutriRisk AI</div>
+            <div class="brand-subtitle">Clinical Decision Support</div>
+          </div>
+        </a>
+
+        <div class="sidebar-nav-container">
+          <div class="sidebar-category-header">Personal Portal</div>
+          <a href="/dashboard" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            </span>
+            <span>Dashboard</span>
+          </a>
+
+          <div class="sidebar-category-header mt-3">Clinical Screening</div>
+          <a href="/predict" class="sidebar-nav-link active">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </span>
+            <span>New Assessment</span>
+          </a>
+          <a href="/batch" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span>Batch Screening</span>
+          </a>
+          <a href="/history" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <span>Assessment History</span>
+          </a>
+
+          <div class="sidebar-category-header mt-3">Intelligence &amp; Data</div>
+          <a href="/analytics" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+            <span>Analytics Dashboard</span>
+          </a>
+          <a href="/model" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span>Model Benchmarks</span>
+          </a>
+
+          
+            <div class="sidebar-category-header mt-3">Administration</div>
+            <a href="/admin" class="sidebar-nav-link ">
+              <span class="sidebar-nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <span>Admin Console</span>
+            </a>
+          
+
+          <div class="sidebar-category-header mt-3">Account &amp; System</div>
+          <a href="javascript:;" class="sidebar-nav-link" id="sidebarInstallApp" style="color: var(--primary-teal);">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </span>
+            <span>Install NutriRisk App</span>
+          </a>
+          <a href="/profile" class="sidebar-nav-link ">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <span>My Profile</span>
+          </a>
+          <a href="/" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </span>
+            <span>Project Overview</span>
+          </a>
+          <a href="/logout" class="sidebar-nav-link text-danger">
+            <span class="sidebar-nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </span>
+            <span>Sign Out</span>
+          </a>
+        </div>
+
+        <div class="sidebar-user-footer">
+          <div class="d-flex align-items-center gap-2">
+            <div class="brand-icon-box" style="width: 32px; height: 32px; font-size: 0.9rem;">
+              U
+            </div>
+            <div class="overflow-hidden">
+              <div class="small fw-bold text-truncate">Ullas S</div>
+              <div class="small text-muted text-capitalize">admin Access</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <div class="app-content-workspace">
+        <header class="app-header">
+          <div class="d-flex align-items-center gap-3">
+            <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Toggle navigation">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+              NutriRisk AI v2.4 &bull; Clinical Prototype
+            </span>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-teal d-none align-items-center gap-2" id="btnInstallApp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <span>Install App</span>
+            </button>
+            <a href="/predict" class="btn btn-sm btn-primary-teal d-none d-md-inline-flex align-items-center gap-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Run Assessment</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+              <span class="small fw-semibold text-muted d-none d-sm-inline">Logged in as:</span>
+              <span class="badge bg-teal-subtle text-teal fw-bold" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+                Ullas S
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <main class="container-fluid p-4" style="max-width: 1280px; flex: 1;">
+          
+            
+          
+
+          
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-9">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Nutritional Risk Assessment</h1>
+        <p class="text-muted small mb-0">Multi-parameter screening form for early malnutrition stratification (Adult cohort: 18+ years).</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/history" class="btn btn-sm btn-outline-slate">
+          View Past Records
+        </a>
+      </div>
+    </div>
+
+    <!-- The Form -->
+    <form method="post" id="assessmentForm" novalidate>
+      <input type="hidden" name="csrf_token" value="4c54ed53f246f58ed5ac17711f8530ed3844485af05b2f1b5be1044a43f50e50">
+      
+      <!-- Section 1: Demographics & Anthropometry (Step 01) -->
+      <div class="form-step-card">
+        <div class="step-number-badge">01</div>
+        <div class="question-title">
+          <span>Demographic &amp; Anthropometric Profile</span>
+        </div>
+        <div class="question-desc">
+          Essential biometric parameters. Body Mass Index (BMI) is calculated automatically from height and weight.
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Subject / Patient Label</label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              </span>
+              <input type="text" name="subject" class="form-control-clinical" placeholder="e.g. Patient 101 / Self" value="">
+            </div>
+            <div class="form-text small">Optional clinical identifier or pseudonym.</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Age in Years <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <input type="number" name="age" id="inputAge" class="form-control-clinical" min="18" max="100" placeholder="18 – 100" required value="">
+              <span class="input-unit-badge">years</span>
+            </div>
+            <div class="form-text small">Model scope restricted to adults aged 18 and older.</div>
+          </div>
+
+          <!-- Biological Sex (Segmented Pill Buttons) -->
+          <div class="col-12 mt-3">
+            <label class="form-label small fw-bold text-muted d-block">Biological Sex <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="sex" value="Female" checked>
+                  <span class="segmented-pill-btn">
+                    <span>Female</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="sex" value="Male" >
+                  <span class="segmented-pill-btn">
+                    <span>Male</span>
+                  </span>
+                </label>
+              
+            </div>
+          </div>
+
+          <div class="col-md-6 mt-3">
+            <label class="form-label small fw-bold text-muted">Height in Centimeters <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0l12.6 12.6z"/><line x1="14.5" y1="9.5" x2="16.5" y2="11.5"/><line x1="11.5" y1="12.5" x2="13.5" y2="14.5"/><line x1="8.5" y1="15.5" x2="10.5" y2="17.5"/></svg>
+              </span>
+              <input type="number" step="0.1" name="height_cm" id="inputHeight" class="form-control-clinical" min="120" max="220" placeholder="120.0 – 220.0" required value="">
+              <span class="input-unit-badge">cm</span>
+            </div>
+          </div>
+
+          <div class="col-md-6 mt-3">
+            <label class="form-label small fw-bold text-muted">Weight in Kilograms <span class="text-danger">*</span></label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 18"/><path d="m16 14 4-2-4-2"/><path d="m8 14-4-2 4-2"/><circle cx="12" cy="19" r="2"/></svg>
+              </span>
+              <input type="number" step="0.1" name="weight_kg" id="inputWeight" class="form-control-clinical" min="25" max="250" placeholder="25.0 – 250.0" required value="">
+              <span class="input-unit-badge">kg</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Real-Time BMI Indicator -->
+          <div class="col-12">
+            <div id="liveBmiBox" class="live-bmi-box" style="display: none;">
+              <div>
+                <div class="small fw-bold text-muted text-uppercase">Calculated Body Mass Index (BMI)</div>
+                <div id="liveBmiCategory" class="small fw-bold mt-1">Normal Baseline</div>
+              </div>
+              <div class="text-end">
+                <div class="bmi-metric-val"><span id="liveBmiValue">--</span> <span class="fs-6 fw-normal text-muted">kg/m²</span></div>
+                <div class="small text-muted">Automatically passed to ML feature pipeline</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Dietary Diversity & Nutritional Intake (Step 02) -->
+      <div class="form-step-card">
+        <div class="step-number-badge">02</div>
+        <div class="question-title">
+          <span>Dietary Diversity &amp; Nutritional Intake</span>
+        </div>
+        <div class="question-desc">
+          Evaluates micronutrient adequacy and daily caloric frequency.
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">
+              Daily Food Groups Eaten (1 – 8) <span class="text-danger">*</span>
+            </label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A7.003 7.003 0 0 1 5.07 11H5a1 1 0 0 1 0-2h.07A7.003 7.003 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A7.003 7.003 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A7.003 7.003 0 0 1 13 16.93z"/></svg>
+              </span>
+              <input type="number" name="food_groups" class="form-control-clinical" min="1" max="8" placeholder="1 to 8" required value="">
+              <span class="input-unit-badge">groups / day</span>
+            </div>
+            <div class="form-text small">
+              Standard food groups: grains, legumes, dairy, meat/fish, eggs, leafy greens, vitamin A fruits, other vegetables.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">
+              Meals Consumed Per Day <span class="text-danger">*</span>
+            </label>
+            <div class="custom-input-group">
+              <span class="input-leading-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              </span>
+              <input type="number" name="meals_per_day" class="form-control-clinical" min="1" max="8" placeholder="1 to 8" required value="">
+              <span class="input-unit-badge">meals / day</span>
+            </div>
+            <div class="form-text small">Total frequency of main meals consumed on an average day.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Lifestyle & Recent Clinical History (Step 03) -->
+      <div class="form-step-card">
+        <div class="step-number-badge">03</div>
+        <div class="question-title">
+          <span>Physical Activity &amp; Clinical History</span>
+        </div>
+        <div class="question-desc">
+          Assesses metabolic demand and physiological stress from acute illness.
+        </div>
+
+        <div class="row g-4">
+          <!-- Physical Activity Level -->
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted d-block">Physical Activity Level <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="activity" value="Low" >
+                  <span class="segmented-pill-btn">
+                    <span>Low</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="activity" value="Moderate" checked>
+                  <span class="segmented-pill-btn">
+                    <span>Moderate</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="activity" value="High" >
+                  <span class="segmented-pill-btn">
+                    <span>High</span>
+                  </span>
+                </label>
+              
+            </div>
+          </div>
+
+          <!-- Recent Acute Illness -->
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted d-block">Acute Illness in Prior 2 Weeks? <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="recent_illness" value="No" checked>
+                  <span class="segmented-pill-btn">
+                    <span>No</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="recent_illness" value="Yes" >
+                  <span class="segmented-pill-btn">
+                    <span>Yes</span>
+                  </span>
+                </label>
+              
+            </div>
+            <div class="form-text small mt-1">Includes acute fever, infection, or gastrointestinal illness.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Socioeconomic & Demographic Context (Step 04) -->
+      <div class="form-step-card">
+        <div class="step-number-badge">04</div>
+        <div class="question-title">
+          <span>Socioeconomic &amp; Environmental Factors</span>
+        </div>
+        <div class="question-desc">
+          Captures structural determinants of food access, healthcare awareness, and environmental vulnerability.
+        </div>
+
+        <div class="row g-4">
+          <!-- Household Income -->
+          <div class="col-12">
+            <label class="form-label small fw-bold text-muted d-block">Household Income Tier <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="income" value="Low" >
+                  <span class="segmented-pill-btn">
+                    <span>Low Income</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="income" value="Middle" checked>
+                  <span class="segmented-pill-btn">
+                    <span>Middle Income</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="income" value="High" >
+                  <span class="segmented-pill-btn">
+                    <span>High Income</span>
+                  </span>
+                </label>
+              
+            </div>
+          </div>
+
+          <!-- Education Level -->
+          <div class="col-12">
+            <label class="form-label small fw-bold text-muted d-block">Highest Education Level <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="education" value="None" >
+                  <span class="segmented-pill-btn">
+                    <span>None</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="education" value="Primary" >
+                  <span class="segmented-pill-btn">
+                    <span>Primary</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="education" value="Secondary" checked>
+                  <span class="segmented-pill-btn">
+                    <span>Secondary</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="education" value="Higher" >
+                  <span class="segmented-pill-btn">
+                    <span>Higher</span>
+                  </span>
+                </label>
+              
+            </div>
+          </div>
+
+          <!-- Residence Type -->
+          <div class="col-12">
+            <label class="form-label small fw-bold text-muted d-block">Geographic Residence <span class="text-danger">*</span></label>
+            <div class="segmented-pill-group">
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="residence" value="Urban" checked>
+                  <span class="segmented-pill-btn">
+                    <span>Urban</span>
+                  </span>
+                </label>
+              
+                <label class="segmented-pill-option">
+                  <input type="radio" name="residence" value="Rural" >
+                  <span class="segmented-pill-btn">
+                    <span>Rural</span>
+                  </span>
+                </label>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+        <button type="button" class="btn btn-outline-slate d-inline-flex align-items-center gap-2" id="btnResetAssessment">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          <span>Reset Form</span>
+        </button>
+        <button type="submit" class="btn btn-primary-teal px-4 py-2 fs-6">
+          Predict Nutritional Risk &rarr;
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Under 18 Clinical Scope Alert Modal -->
+<div class="modal fade" id="under18AlertModal" tabindex="-1" aria-labelledby="under18ModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-danger text-white border-0 py-3">
+        <h5 class="modal-title fs-6 fw-bold d-flex align-items-center gap-2" id="under18ModalLabel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Pediatric Scope Limitation (Under 18)</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="brand-icon-box mx-auto mb-3 text-danger" style="width: 56px; height: 56px; background-color: #fee2e2;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        </div>
+        <h3 class="h5 fw-bold text-dark mb-2">Subject Under 18 Detected</h3>
+        <p class="text-muted small mb-3">
+          NutriRisk AI is specifically calibrated, validated, and clinically designed for <strong>adult populations aged 18 and older</strong>.
+        </p>
+        <div class="alert alert-warning text-start small border border-warning-subtle mb-3">
+          <strong>Clinical Protocol Warning:</strong> Pediatric malnutrition assessment cannot be accurately evaluated using adult Body Mass Index (BMI) formulas. Pediatric screening requires <strong>WHO Child Growth Standards</strong> (weight-for-age, height-for-age z-scores, and Mid-Upper Arm Circumference [MUAC]).
+        </div>
+        <p class="small text-muted mb-0">
+          To maintain clinical safety and ethical standards, this screening cannot be processed for an underage subject.
+        </p>
+      </div>
+      <div class="modal-footer bg-light border-0 justify-content-center gap-2 py-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btnResetAge" data-bs-dismiss="modal">
+          Clear Age
+        </button>
+        <button type="button" class="btn btn-primary-teal btn-sm px-4" id="btnSetAge18" data-bs-dismiss="modal">
+          Set Age to 18 (Minimum Adult)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ageInput = document.getElementById("inputAge");
+  if (!ageInput) return;
+
+  const modalEl = document.getElementById("under18AlertModal");
+  const under18Modal = new bootstrap.Modal(modalEl);
+
+  function checkAgeBoundary() {
+    const rawVal = ageInput.value.trim();
+    if (!rawVal) return;
+    const val = parseInt(rawVal, 10);
+    if (!isNaN(val) && val > 0 && val < 18) {
+      under18Modal.show();
+    }
+  }
+
+  ageInput.addEventListener("change", checkAgeBoundary);
+  ageInput.addEventListener("blur", checkAgeBoundary);
+
+  document.getElementById("btnResetAge").addEventListener("click", function() {
+    ageInput.value = "";
+    ageInput.focus();
+  });
+
+  document.getElementById("btnSetAge18").addEventListener("click", function() {
+    ageInput.value = "18";
+  });
+
+  // Check on load if form was re-rendered with underage value
+  const initialAge = parseInt(ageInput.value, 10);
+  if (!isNaN(initialAge) && initialAge > 0 && initialAge < 18) {
+    checkAgeBoundary();
+  }
+});
+</script>
+
+
+          <!-- Clinical Disclaimer Card -->
+          <div class="card border-0 bg-light p-3 mt-4 text-muted small border-start border-4 border-warning">
+            <strong>Decision-Support Disclaimer:</strong> NutriRisk AI is an academic clinical decision-support research prototype developed for screening and risk stratification. It does not provide medical diagnoses or replace professional clinical evaluations.
+          </div>
+        </main>
+
+        <footer class="text-center py-3 text-muted small border-top bg-white mt-auto">
+          NutriRisk AI &bull; Healthcare Intelligence &amp; Clinical Decision-Support Framework
+        </footer>
+      </div>
+
+    
+  </div>
+
+  <!-- PWA & Mobile App Installation Modal -->
+  <div class="modal fade" id="pwaInstallModal" tabindex="-1" aria-labelledby="pwaInstallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header text-white" style="background-color: var(--primary-teal);">
+          <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="pwaInstallModalLabel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span>Install NutriRisk AI App</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <img src="/static/img/icon-192.png" alt="NutriRisk Logo" width="56" height="56" class="rounded-3 shadow-sm">
+            <div>
+              <h6 class="fw-bold mb-0">NutriRisk AI Standalone App</h6>
+              <div class="small text-muted">Install on your phone, tablet, or desktop for 1-click launch and offline access.</div>
+            </div>
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Platform Installation Guide:</strong>
+            <ul class="mb-0 ps-3 mt-1 text-muted">
+              <li><strong>Android &amp; Chrome:</strong> Click the "Install Now" button below or tap the browser menu &rarr; <em>Install App</em>.</li>
+              <li><strong>iPhone / iPad (Safari):</strong> Tap the <strong>Share</strong> button at the bottom &rarr; tap <strong>Add to Home Screen</strong>.</li>
+              <li><strong>Windows &amp; Mac:</strong> Click the <strong>Install</strong> icon in the address bar or launch via <code>run_app.bat</code>.</li>
+            </ul>
+          </div>
+
+          <button type="button" class="btn btn-primary-teal w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2" id="btnModalTriggerInstall">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Install Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offline Bootstrap Bundle JS -->
+  <script src="/static/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

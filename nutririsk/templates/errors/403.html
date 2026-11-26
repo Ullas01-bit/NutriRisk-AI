@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}403 Forbidden — NutriRisk AI{% endblock %}
+
+{% macro error_403_content() %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 text-center">
+      <div class="clinical-card p-5 shadow-sm border-0">
+        <div class="stat-icon-wrapper red mx-auto mb-4" style="width: 72px; height: 72px; background-color: var(--risk-high-bg); color: var(--risk-high);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <span class="badge bg-red-subtle text-red border border-red px-3 py-1 mb-3 fw-bold">
+          HTTP Error 403 &bull; Access Denied
+        </span>
+        <h1 class="h3 fw-bold text-navy mb-2">Administrative Privileges Required</h1>
+        <p class="text-muted mb-4">
+          You do not have authorization to access this administrative resource or data record. Access is strictly restricted according to role-based access control policies.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+          {% if session.get('uid') %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary-teal">
+              &larr; Return to Dashboard
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary-teal">
+              Log In as Administrator
+            </a>
+          {% endif %}
+          <a href="{{ url_for('main.home') }}" class="btn btn-outline-slate">
+            Public Overview
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% block body %}
+  {{ error_403_content() }}
+{% endblock %}
+
+{% block public_body %}
+  {{ error_403_content() }}
+{% endblock %}

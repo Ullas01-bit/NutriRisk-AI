@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment Result — {{ a.subject }} — NutriRisk AI{% endblock %}
+
+{% block body %}
+{% set risk_key = a.risk.split()[0] %}
+
+<!-- Result Header Navigation -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-light text-muted border">Assessment #{{ a.id }}</span>
+      <span class="text-muted small">&bull; {{ a.created.replace('T', ' ') }}</span>
+    </div>
+    <h1 class="h3 fw-bold mb-0">Nutritional Risk Assessment — {{ a.subject }}</h1>
+  </div>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-primary-teal" href="/predict">+ New Assessment</a>
+    <a class="btn btn-outline-slate" href="/history">View History</a>
+    <a class="btn btn-outline-teal" href="/result/{{ a.id }}/pdf" title="Download Clinical PDF Report">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf me-1" viewBox="0 0 16 16">
+        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+        <path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.486c.082.344.053.682-.04 1.02a6.8 6.8 0 0 1-.502 1.258 19 19 0 0 0 1.464 2.87c.394-.1.802-.178 1.223-.228.375-.044.757-.058 1.127.008.318.057.575.225.688.487.114.263.097.558-.02.825-.137.31-.384.53-.69.664a3.8 3.8 0 0 1-1.393.208c-.76-.016-1.554-.183-2.32-.472a18 18 0 0 1-2.122 1.157c-.502.26-1.026.475-1.536.602-.375.093-.733.125-1.05.083"/>
+      </svg>
+      Download PDF Report
+    </a>
+    <button class="btn btn-outline-secondary" onclick="window.print()" title="Print this assessment">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer me-1" viewBox="0 0 16 16">
+        <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+        <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+      </svg>
+      Print Result
+    </button>
+  </div>
+</div>
+
+<!-- Primary Stratification KPI Grid -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="clinical-card h-100 text-center d-flex flex-column justify-content-center p-4">
+      <div class="stat-label mb-2">Stratified Risk Classification</div>
+      <div class="mb-2">
+        <span class="risk-badge {{ risk_key }} fs-5 py-2 px-4 shadow-sm">
+          <span>{{ a.risk.upper() }}</span>
+        </span>
+      </div>
+      <div class="small text-muted mt-1">Multi-factor machine learning stratification</div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="clinical-card h-100 text-center d-flex flex-column justify-content-center p-4">
+      <div class="stat-label mb-2">Prediction Confidence</div>
+      <div class="stat-value text-teal" style="color: var(--primary-teal);">
+        {{ '%.1f'|format(a.confidence * 100) }}%
+      </div>
+      <div class="small text-muted">Posterior class probability</div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="clinical-card h-100 text-center d-flex flex-column justify-content-center p-4">
+      <div class="stat-label mb-2">Engineered Body Mass Index</div>
+      <div class="stat-value text-dark">
+        {{ inp.bmi }} <span class="fs-6 fw-normal text-muted">kg/m²</span>
+      </div>
+      <div class="small fw-semibold mt-1 {{ 'text-danger' if (inp.bmi < 18.5 or inp.bmi >= 30.0) else 'text-success' }}">
+        {% if inp.bmi < 18.5 %}Underweight (Nutritional Vulnerability)
+        {% elif inp.bmi < 25.0 %}Normal Baseline Weight
+        {% elif inp.bmi < 30.0 %}Overweight
+        {% else %}Obese Class Range{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Probability Stratification & Clinical Guidance -->
+<div class="row g-4 mb-4">
+  <!-- Class Probabilities -->
+  <div class="col-lg-6">
+    <div class="clinical-card h-100">
+      <h2 class="h5 fw-bold mb-2">Posterior Probability Distribution</h2>
+      <p class="text-muted small mb-4">Relative likelihood calculated across all 3 risk tiers.</p>
+      
+      <div class="p-3 bg-light rounded-3 border">
+        {% for label in labels %}
+          {% set prob = (probs[label] if (probs is mapping and label in probs) else (probs[loop.index0] if (probs is sequence and loop.index0 < probs|length) else 0.0)) %}
+          {% set fill_class = 'low' if loop.index0==0 else ('moderate' if loop.index0==1 else 'high') %}
+          <div class="mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+            <div class="d-flex justify-content-between small fw-bold mb-1">
+              <span>{{ label }}</span>
+              <span>{{ '%.1f'|format(prob * 100) }}%</span>
+            </div>
+            <div class="prob-track">
+              <div class="prob-fill {{ fill_class }}" style="width: {{ prob * 100 }}%;"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommended Clinical Action -->
+  <div class="col-lg-6">
+    <div class="clinical-card h-100 d-flex flex-column justify-content-between {{ 'border-start border-4 border-success' if risk_key=='Low' else ('border-start border-4 border-warning' if risk_key=='Moderate' else 'border-start border-4 border-danger') }}">
+      <div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 class="h5 fw-bold mb-0">Recommended Clinical Guidance</h2>
+          <span class="badge bg-light text-muted border">Tier Protocol</span>
+        </div>
+        <p class="text-muted small mb-3">Suggested immediate and preventative nutritional measures:</p>
+        <div class="p-3 rounded-3 bg-light border mb-3">
+          <p class="mb-0 text-dark fw-medium">{{ advice }}</p>
+        </div>
+      </div>
+
+      <div class="p-2 bg-light rounded text-muted small">
+        <strong>Review Note:</strong> Recommended actions are clinical decision-support heuristics and should be contextualized with individual patient history.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Explainable AI (XAI) Section -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h2 class="h5 fw-bold mb-1">Explainable AI (XAI) — Factor Attribution Analysis</h2>
+      <p class="text-muted small mb-0">
+        Transparent interpretability suite displaying how demographic, lifestyle, and dietary inputs influenced the prediction.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-teal-subtle text-teal fw-bold p-2" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+        Occlusion Sensitivity
+      </span>
+      {% if shap and shap.available %}
+      <span class="badge bg-primary-subtle text-primary fw-bold p-2">
+        SHAP TreeExplainer Active
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Method Navigation Tabs -->
+  <ul class="nav nav-tabs mb-4" id="xaiTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active fw-bold text-dark" id="occlusion-tab" data-bs-toggle="tab" data-bs-target="#occlusion-pane" type="button" role="tab">
+        1. Occlusion-Based Sensitivity (Primary Baseline)
+      </button>
+    </li>
+    {% if shap and shap.available %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link fw-bold text-dark" id="shap-tab" data-bs-toggle="tab" data-bs-target="#shap-pane" type="button" role="tab">
+        2. SHAP Game-Theoretic Attributions (Advanced)
+      </button>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="tab-content" id="xaiTabsContent">
+    <!-- TAB 1: OCCLUSION SENSITIVITY -->
+    <div class="tab-pane fade show active" id="occlusion-pane" role="tabpanel">
+      <!-- Method banner -->
+      <div class="alert alert-light border border-teal-subtle p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-start gap-2">
+          <span class="fs-5">ℹ️</span>
+          <div class="small">
+            <strong>Occlusion Methodology:</strong> Measures the change in predicted-class probability (&Delta;P) when an individual's specific feature group is replaced by the population reference value (median for numeric, mode for categorical). 
+            <span class="badge bg-danger-subtle text-danger border border-danger ms-1">▲ Positive &Delta;P</span> indicates a risk-driving factor;
+            <span class="badge bg-success-subtle text-success border border-success ms-1">▼ Negative &Delta;P</span> indicates a protective buffer.
+            <em>Note: This is an empirical occlusion method, distinct from SHAP Shapley values.</em>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factors Table -->
+      <div class="table-responsive mb-4">
+        <table class="table table-hover table-clinical align-middle">
+          <thead>
+            <tr>
+              <th style="width: 25%;">Clinical Indicator Group</th>
+              <th style="width: 15%;">Impact Direction</th>
+              <th style="width: 35%;">Human-Readable Clinical Explanation</th>
+              <th style="width: 15%;">Importance Share</th>
+              <th class="text-end" style="width: 10%;">&Delta;P Shift</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for factor in factors %}
+              {% set eff = (factor.effect if (factor.effect is defined and factor.effect is not none) else (0.05 if factor.direction == 'Risk-increasing' else -0.05)) %}
+              {% set f_arrow = (factor.arrow if (factor.arrow is defined and factor.arrow) else ('▲' if eff > 0 else '▼')) %}
+              {% set f_share = (factor.share if (factor.share is defined and factor.share is not none) else 0.0) %}
+              <tr>
+                <td class="fw-semibold">
+                  <span class="me-2 text-{{ 'danger' if eff > 0 else 'success' }} fw-bold fs-5">
+                    {{ f_arrow }}
+                  </span>
+                  {{ factor.name }}
+                </td>
+                <td>
+                  <span class="badge {{ 'bg-danger-subtle text-danger border-danger' if eff > 0 else 'bg-success-subtle text-success border-success' }} border">
+                    {{ factor.direction }}
+                  </span>
+                </td>
+                <td class="small text-muted">
+                  {{ factor.explanation }}
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="prob-track flex-grow-1" style="height: 8px;">
+                      <div class="prob-fill {{ 'high' if eff > 0 else 'low' }}" style="width: {{ f_share }}%;"></div>
+                    </div>
+                    <span class="small fw-bold">{{ f_share }}%</span>
+                  </div>
+                </td>
+                <td class="text-end fw-mono small fw-bold {{ 'text-danger' if eff > 0 else 'text-success' }}">
+                  {{ '+' if eff > 0 else '' }}{{ '%.4f'|format(eff) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Occlusion Limitations Callout -->
+      <div class="p-3 bg-light rounded-3 border small text-muted">
+        <strong>Important Limitations of Occlusion Analysis:</strong>
+        <ul class="mb-0 mt-1 ps-3">
+          <li>Evaluates localized marginal changes; does not measure complex higher-order combinatorial interactions between features.</li>
+          <li>Perturbations replace features with cohort medians/modes; baseline reference values are specific to the training population.</li>
+          <li>Intended strictly for transparent decision support and clinical explainability; does not establish biological causality.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- TAB 2: SHAP ATTRIBUTIONS (IF AVAILABLE) -->
+    {% if shap and shap.available %}
+    <div class="tab-pane fade" id="shap-pane" role="tabpanel">
+      <!-- SHAP Method banner -->
+      <div class="alert alert-light border border-primary-subtle p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-start gap-2">
+          <span class="text-teal flex-shrink-0 mt-1">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </span>
+          <div class="small">
+            <strong>SHAP (SHapley Additive exPlanations) Methodology:</strong> Uses TreeExplainer to compute exact Shapley values derived from cooperative game theory. Each value represents the fair average marginal contribution of a feature across all possible feature subsets in log-odds / margin space.
+          </div>
+        </div>
+      </div>
+
+      <!-- Grouped SHAP Table -->
+      <h3 class="h6 fw-bold mb-3">Feature Group Attributions (Grouped Shapley Sums)</h3>
+      <div class="table-responsive mb-4">
+        <table class="table table-hover table-clinical align-middle">
+          <thead>
+            <tr>
+              <th style="width: 30%;">Feature Group</th>
+              <th style="width: 20%;">Direction</th>
+              <th style="width: 35%;">Relative Impact Share</th>
+              <th class="text-end" style="width: 15%;">Shapley Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in shap.grouped_attributions %}
+              <tr>
+                <td class="fw-semibold">
+                  <span class="me-2 text-{{ 'danger' if item.shap_value > 0 else 'success' }} fw-bold fs-5">
+                    {{ item.arrow }}
+                  </span>
+                  {{ item.name }}
+                </td>
+                <td>
+                  <span class="badge {{ 'bg-danger-subtle text-danger border-danger' if item.shap_value > 0 else 'bg-success-subtle text-success border-success' }} border">
+                    {{ item.direction }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="prob-track flex-grow-1" style="height: 8px;">
+                      <div class="prob-fill {{ 'high' if item.shap_value > 0 else 'low' }}" style="width: {{ item.share }}%;"></div>
+                    </div>
+                    <span class="small fw-bold">{{ item.share }}%</span>
+                  </div>
+                </td>
+                <td class="text-end fw-mono small fw-bold {{ 'text-danger' if item.shap_value > 0 else 'text-success' }}">
+                  {{ '+' if item.shap_value > 0 else '' }}{{ '%.4f'|format(item.shap_value) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Top Individual Feature Drivers -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <h4 class="h6 fw-bold text-danger mb-2">Top Drivers Pushing Toward {{ a.risk }}</h4>
+            <ul class="list-unstyled mb-0 small">
+              {% for d in shap.top_risk_drivers %}
+                <li class="d-flex justify-content-between py-1 border-bottom">
+                  <span>{{ d.feature }}</span>
+                  <span class="fw-mono text-danger fw-bold">+{{ '%.4f'|format(d.shap_value) }}</span>
+                </li>
+              {% else %}
+                <li class="text-muted">None detected.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <h4 class="h6 fw-bold text-success mb-2">Top Protective Factors Buffer</h4>
+            <ul class="list-unstyled mb-0 small">
+              {% for p in shap.top_protective %}
+                <li class="d-flex justify-content-between py-1 border-bottom">
+                  <span>{{ p.feature }}</span>
+                  <span class="fw-mono text-success fw-bold">{{ '%.4f'|format(p.shap_value) }}</span>
+                </li>
+              {% else %}
+                <li class="text-muted">None detected.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHAP Limitations Callout -->
+      <div class="p-3 bg-light rounded-3 border small text-muted">
+        <strong>Important Limitations of SHAP Values:</strong>
+        <ul class="mb-0 mt-1 ps-3">
+          <li>TreeExplainer values are expressed in raw margin (log-odds) space prior to multi-class softmax calibration.</li>
+          <li>Individual one-hot categorical levels are attributed separately and aggregated; individual feature attribution assumes tree path feature independence.</li>
+          <li>Shapley values demonstrate mathematical attribution, not physiological or clinical causation.</li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Formal Decision-Support Disclaimer Banner -->
+<div class="alert alert-light border border-secondary-subtle p-3 mb-4 rounded-3 d-flex align-items-start gap-3">
+  <span class="text-muted flex-shrink-0 mt-1">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  </span>
+  <div class="small text-muted">
+    <strong>Clinical Decision-Support Disclaimer:</strong> 
+    NutriRisk AI is an academic decision-support framework designed to assist in early nutritional risk stratification. 
+    It is <strong>not</strong> a certified medical diagnostic device and does not establish clinical diagnoses or prescribe treatments. 
+    Model confidence indicates posterior statistical probability based on demographic, lifestyle, and dietary inputs and must never be interpreted as absolute clinical certainty. 
+    All screening outputs should be validated through comprehensive laboratory assessments, physical examinations, and consultation with a licensed clinical dietitian or physician.
+  </div>
+</div>
+
+<style>
+@media print {
+  .sidebar-wrapper, .mobile-toggle, .no-print, .btn, .nav-tabs {
+    display: none !important;
+  }
+  .main-content, .content-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt;
+  }
+  .clinical-card {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    break-inside: avoid;
+    margin-bottom: 1rem !important;
+  }
+}
+</style>
+{% endblock %}

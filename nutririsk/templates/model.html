@@ -1,0 +1,849 @@
+{% extends "base.html" %}
+
+{% block title %}Machine Learning Model Architecture & Technical Specification — NutriRisk AI{% endblock %}
+
+{% macro model_content() %}
+<!-- Page Header & Academic Compliance Banner -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="h3 fw-bold mb-0">Machine Learning Model Architecture &amp; Evaluation</h1>
+    </div>
+    <p class="text-muted small mb-0">
+      Rigorous 5-algorithm benchmark evaluation, leakage-free preprocessing pipeline, 5-fold cross-validation, and explainable AI architecture.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fw-semibold">
+      Champion Model: {{ best_model if best_model else 'XGBoost Classifier' }}
+    </span>
+    <span class="badge bg-light text-secondary border px-3 py-2 small font-monospace">
+      Artifact: {{ active_meta.artifact_version if active_meta else 'v1.0-joblib' }}
+    </span>
+  </div>
+</div>
+
+<!-- Academic & Dataset Status Disclosure Alert -->
+{% if 'SYNTHETIC' in m.source or not dataset_meta.is_real_data %}
+  <div class="alert alert-warning border-warning shadow-sm mb-4" role="alert">
+    <div class="d-flex align-items-start gap-3">
+      <span class="text-warning flex-shrink-0 mt-1">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <div>
+        <div class="h6 fw-bold mb-1 text-dark">Academic Evaluation &amp; Synthetic Benchmark Disclosure</div>
+        <p class="small text-muted mb-2">
+          The validation metrics and performance scores reported below reflect training on a structured <strong>synthetic benchmark cohort ({{ m.n_rows if m.n_rows else 6000 }} adult samples)</strong> algorithmically generated to simulate complex non-linear malnutrition interactions without requiring restricted patient health records.
+        </p>
+        <div class="d-flex align-items-center gap-2 flex-wrap small">
+          <span class="badge bg-warning-subtle text-dark border border-warning">Demonstration Benchmarks</span>
+          <span class="text-muted">&bull;</span>
+          <span class="text-dark">To re-train on an empirical clinical survey (e.g., NHANES or NFHS), place your verified CSV at <code>data/dataset.csv</code> and execute <code>python train.py</code>.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Key Metrics KPI Summary Cards Row -->
+<div class="row g-3 mb-4">
+  <!-- 5-Fold CV Macro F1 -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper teal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="stat-label">5-Fold CV Macro-F1 (Selection)</div>
+      <div class="stat-value text-teal" style="color: var(--primary-teal);">
+        {% if best_metrics and best_metrics.cv_f1_mean is defined %}
+          {{ best_metrics.cv_f1_mean|round(4) }}
+        {% elif best_metrics and best_metrics.cv_f1 is defined %}
+          {{ best_metrics.cv_f1|round(4) }}
+        {% else %}
+          Not available
+        {% endif %}
+      </div>
+      <div class="stat-trend neutral">
+        {% if best_metrics and best_metrics.cv_f1_std is defined %}
+          &plusmn; {{ best_metrics.cv_f1_std|round(4) }} across 5 folds
+        {% else %}
+          Primary selection criterion
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Holdout Test Accuracy -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper emerald">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="stat-label">Holdout Test Accuracy</div>
+      <div class="stat-value text-dark">
+        {% if best_metrics and best_metrics.accuracy is defined %}
+          {{ (best_metrics.accuracy * 100)|round(2) }}%
+        {% else %}
+          Not available
+        {% endif %}
+      </div>
+      <div class="stat-trend positive">
+        Untouched test split (N = {{ m.n_test if m.n_test else 1200 }})
+      </div>
+    </div>
+  </div>
+
+  <!-- Holdout Macro-F1 Score -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper navy">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div class="stat-label">Holdout Test Macro-F1</div>
+      <div class="stat-value text-dark">
+        {% if best_metrics and best_metrics.f1 is defined %}
+          {{ best_metrics.f1|round(4) }}
+        {% else %}
+          Not available
+        {% endif %}
+      </div>
+      <div class="stat-trend neutral">
+        Harmonic mean (Precision &amp; Recall)
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Class ROC-AUC (OVR) -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div class="stat-label">Multi-Class ROC-AUC (OVR)</div>
+      <div class="stat-value text-dark">
+        {% if best_metrics and best_metrics.roc_auc is defined %}
+          {{ best_metrics.roc_auc|round(4) }}
+        {% else %}
+          Not available
+        {% endif %}
+      </div>
+      <div class="stat-trend positive">
+        One-vs-Rest class separability
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 1: Project Methodology & Pipeline Architecture -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">1. Research &amp; Clinical Decision-Support Methodology</h2>
+    <span class="badge bg-light text-muted border">End-to-End Pipeline</span>
+  </div>
+  <div class="p-3">
+    <p class="text-muted small mb-3">
+      NutriRisk AI implements an evidence-based clinical decision-support framework designed to stratify malnutrition risk across adult populations (ages 18+) into three triage tiers: <strong>Low Risk</strong>, <strong>Moderate Risk</strong>, and <strong>High Risk</strong>.
+    </p>
+
+    <!-- Visual Architecture Grid -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">Stage I: Data Ingestion &amp; Engineering</div>
+          <p class="text-muted small mb-0">
+            Accepts 11 multi-domain clinical inputs (demographics, anthropometrics, dietary diversity, lifestyle, and clinical illness history). Computes Body Mass Index (BMI) deterministically via $w / h^2$ before scaling.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">Stage II: Leakage-Free Preprocessing</div>
+          <p class="text-muted small mb-0">
+            Enforces strict data leakage prevention by encapsulating median/mode imputation, StandardScaler, and OneHotEncoder inside scikit-learn Pipelines fitted <em>only</em> on training folds.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">Stage III: Multi-Class Learning &amp; XAI</div>
+          <p class="text-muted small mb-0">
+            Evaluates 5 supervised classification paradigms under 5-fold stratified cross-validation. Employs the champion XGBoost model coupled with dual Explainable AI (Occlusion &amp; SHAP) for decision transparency.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-light border small text-muted mb-0">
+      <strong>Core Design Principle:</strong> The platform operates strictly as a clinical decision-support system (CDSS) for dietitians, healthcare workers, and primary clinicians. It does not replace diagnostic clinical judgment or laboratory assays.
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: Dataset Characteristics, Scope & Class Distribution -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">2. Dataset Specifications &amp; Cohort Characteristics</h2>
+    <span class="badge bg-light text-muted border">Dataset Provenance</span>
+  </div>
+  <div class="p-3">
+    <div class="row g-4 align-items-center mb-3">
+      <div class="col-lg-7">
+        <table class="table table-sm table-bordered align-middle small mb-0">
+          <tbody>
+            <tr>
+              <td class="text-muted fw-semibold" style="width: 200px;">Dataset Name / Identifier</td>
+              <td class="fw-bold text-dark">{{ dataset_meta.source }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Dataset Provenance &amp; Type</td>
+              <td>
+                {% if dataset_meta.is_real_data %}
+                  <span class="badge bg-success-subtle text-success border border-success">Empirical Research Survey</span>
+                {% else %}
+                  <span class="badge bg-warning-subtle text-dark border border-warning">Synthetic Research Benchmark Cohort</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Total Sample Cohort Size</td>
+              <td class="fw-bold text-dark">{{ m.n_rows if m.n_rows else 6000 }} validated records</td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Evaluation Protocol Split</td>
+              <td class="fw-semibold">
+                80% Training Split ({{ m.n_train if m.n_train else 4800 }} samples) &bull; 
+                20% Holdout Test Split ({{ m.n_test if m.n_test else 1200 }} samples)
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Target Population Scope</td>
+              <td>{{ dataset_meta.population_description }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Licensing &amp; Ethical Terms</td>
+              <td>{{ dataset_meta.license }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted fw-semibold">Label Stratification Protocol</td>
+              <td>3 Mutually Exclusive Tiers: Low Risk, Moderate Risk, High Risk</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Class Distribution Chart -->
+      <div class="col-lg-5">
+        <div class="border rounded-3 p-3 text-center bg-light">
+          <div class="fw-bold text-dark small mb-2">Cohort Class Distribution (N = {{ m.n_rows if m.n_rows else 6000 }})</div>
+          <div style="position: relative; height: 180px;">
+            <canvas id="chartClassDist"></canvas>
+          </div>
+          <div class="row text-center mt-2 pt-2 border-top g-1 small">
+            <div class="col-4">
+              <span class="badge bg-success-subtle text-success border border-success d-block py-1 mb-1">Low Risk</span>
+              <span class="fw-bold">{{ m.class_counts.get('Low Risk', 2672) }}</span>
+              <span class="text-muted small d-block">({{ ((m.class_counts.get('Low Risk', 2672) / (m.n_rows if m.n_rows else 6000)) * 100)|round(1) }}%)</span>
+            </div>
+            <div class="col-4">
+              <span class="badge bg-warning-subtle text-dark border border-warning d-block py-1 mb-1">Moderate</span>
+              <span class="fw-bold">{{ m.class_counts.get('Moderate Risk', 1915) }}</span>
+              <span class="text-muted small d-block">({{ ((m.class_counts.get('Moderate Risk', 1915) / (m.n_rows if m.n_rows else 6000)) * 100)|round(1) }}%)</span>
+            </div>
+            <div class="col-4">
+              <span class="badge bg-danger-subtle text-danger border border-danger d-block py-1 mb-1">High Risk</span>
+              <span class="fw-bold">{{ m.class_counts.get('High Risk', 1413) }}</span>
+              <span class="text-muted small d-block">({{ ((m.class_counts.get('High Risk', 1413) / (m.n_rows if m.n_rows else 6000)) * 100)|round(1) }}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: Clinical Input Features & Schema Dictionary -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">3. Clinical Input Features &amp; Data Dictionary</h2>
+    <span class="badge bg-light text-muted border">11 Raw + 1 Engineered Feature</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-clinical align-middle mb-0 small">
+      <thead>
+        <tr>
+          <th>Variable Name</th>
+          <th>Clinical Label &amp; Domain</th>
+          <th>Variable Type</th>
+          <th>Valid Range / Choices</th>
+          <th>Imputation Strategy</th>
+          <th>Clinical Relevance &amp; Pathophysiological Rationale</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for feat in features_catalog %}
+          <tr>
+            <td class="font-monospace fw-bold text-teal" style="color: var(--primary-teal);">{{ feat.name }}</td>
+            <td>
+              <div class="fw-semibold text-dark">{{ feat.label }}</div>
+              <span class="badge bg-light text-muted border">{{ feat.category }}</span>
+            </td>
+            <td>{{ feat.type }}</td>
+            <td class="font-monospace">{{ feat.range }}</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ feat.imputation }}</span></td>
+            <td class="text-muted">{{ feat.clinical_rationale }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 4: Preprocessing Methodology & Feature Engineering -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">4. Preprocessing Methodology &amp; Feature Engineering</h2>
+    <span class="badge bg-light text-muted border">Leakage Prevention</span>
+  </div>
+  <div class="p-3">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="h6 fw-bold text-dark mb-2">Feature Engineering: Body Mass Index (BMI)</div>
+        <p class="text-muted small mb-2">
+          Prior to scaling, somatic height and weight are combined deterministically to formulate Body Mass Index:
+        </p>
+        <div class="p-3 bg-light rounded-3 border text-center font-monospace my-2">
+          $$\text{BMI} = \frac{\text{Weight (kg)}}{\left(\frac{\text{Height (cm)}}{100}\right)^2}$$
+        </div>
+        <p class="text-muted small mb-3">
+          Height values are bounded below at 50 cm to prevent zero-division anomalies. WHO standard cutoffs define nutritional triage:
+        </p>
+        <table class="table table-sm table-bordered small text-center mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>BMI Range (kg/m²)</th>
+              <th>WHO Classification</th>
+              <th>Primary Clinical Implication</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-danger fw-bold">&lt; 18.5</td>
+              <td>Underweight</td>
+              <td>Protein-energy wasting, somatic muscle depletion</td>
+            </tr>
+            <tr>
+              <td class="text-success fw-bold">18.5 – 24.9</td>
+              <td>Normal Weight</td>
+              <td>Physiologically balanced somatic reserve</td>
+            </tr>
+            <tr>
+              <td class="text-warning fw-bold">25.0 – 29.9</td>
+              <td>Overweight</td>
+              <td>Potential micronutrient imbalance / overconsumption</td>
+            </tr>
+            <tr>
+              <td class="text-danger fw-bold">&ge; 30.0</td>
+              <td>Obese</td>
+              <td>Obesity-associated malnutrition &amp; metabolic risk</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="h6 fw-bold text-dark mb-2">Data Leakage Prevention Protocol</div>
+        <p class="text-muted small mb-2">
+          In medical machine learning, computing global means, medians, or scaling parameters across the entire dataset introduces <strong>data leakage</strong>, artificially inflating test metrics.
+        </p>
+        <ul class="text-muted small ps-3 mb-3">
+          <li class="mb-2"><strong>Median Imputation:</strong> Numeric medians are computed <em>strictly on training folds</em> and applied to test sets without updating parameters.</li>
+          <li class="mb-2"><strong>Mode Imputation:</strong> Categorical class modes are calculated exclusively on the training split.</li>
+          <li class="mb-2"><strong>StandardScaler Normalization:</strong> Feature means ($\mu$) and standard deviations ($\sigma$) are fitted on training samples only ($z = \frac{x - \mu}{\sigma}$).</li>
+          <li class="mb-0"><strong>One-Hot Categorical Encoding:</strong> Categorical variables are encoded with <code>handle_unknown='ignore'</code> to ensure runtime safety for previously unobserved categorical states during clinical inference.</li>
+        </ul>
+        <div class="alert alert-teal py-2 px-3 small border" style="background-color: var(--primary-teal-light); border-color: var(--primary-teal);">
+          <strong>Verification:</strong> Encapsulated within <code>sklearn.pipeline.Pipeline</code> and <code>ColumnTransformer</code> to guarantee that every cross-validation fold executes an independent fit-transform cycle.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5 & 6: Algorithms Compared & Benchmark Comparison Table -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">5. Machine Learning Algorithms Benchmark &amp; Model Comparison</h2>
+    <span class="badge bg-light text-muted border">Fair Evaluation Protocol</span>
+  </div>
+  <div class="p-3">
+    <p class="text-muted small mb-3">
+      Five classification algorithms representing distinct mathematical paradigms were evaluated using an identical 80:20 stratified holdout split and 5-fold cross-validation on the training set. <strong>Macro F1-Score</strong> served as the primary selection criterion due to clinical class imbalance.
+    </p>
+
+    <!-- Model Comparison Table -->
+    <div class="table-responsive mb-4">
+      <table class="table table-hover table-clinical align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Candidate Algorithm</th>
+            <th class="text-center">5-Fold CV Macro-F1</th>
+            <th class="text-center">Holdout Accuracy</th>
+            <th class="text-center">Macro Precision</th>
+            <th class="text-center">Macro Recall</th>
+            <th class="text-center">Holdout Macro-F1</th>
+            <th class="text-center">ROC-AUC (OVR)</th>
+            <th class="text-end">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, res in m.models.items() %}
+            {% set is_champ = (name == best_model) %}
+            <tr class="{{ 'table-success fw-bold' if is_champ else '' }}">
+              <td>
+                <div class="fw-bold text-dark">{{ name }}</div>
+                <div class="small text-muted font-monospace">
+                  {% for algo in algorithms_info if algo.name == name %}
+                    {{ algo.type }}
+                  {% endfor %}
+                </div>
+              </td>
+              <td class="text-center text-teal fw-bold" style="color: var(--primary-teal);">
+                {% if res.cv_f1_mean is defined %}
+                  {{ res.cv_f1_mean|round(4) }}
+                  {% if res.cv_f1_std is defined %}<span class="small fw-normal text-muted d-block">&plusmn; {{ res.cv_f1_std|round(4) }}</span>{% endif %}
+                {% elif res.cv_f1 is defined %}
+                  {{ res.cv_f1|round(4) }}
+                {% else %}
+                  <span class="text-muted">Not available</span>
+                {% endif %}
+              </td>
+              <td class="text-center fw-semibold">
+                {{ (res.accuracy * 100)|round(2) }}%
+              </td>
+              <td class="text-center">
+                {{ res.precision|round(4) if res.precision is defined else 'Not available' }}
+              </td>
+              <td class="text-center">
+                {{ res.recall|round(4) if res.recall is defined else 'Not available' }}
+              </td>
+              <td class="text-center {{ 'text-success fw-bold' if is_champ else '' }}">
+                {{ res.f1|round(4) if res.f1 is defined else 'Not available' }}
+              </td>
+              <td class="text-center fw-semibold">
+                {{ res.roc_auc|round(4) if res.roc_auc is defined else 'Not available' }}
+              </td>
+              <td class="text-end">
+                {% if is_champ %}
+                  <span class="badge bg-success px-2 py-1">Deployed Winner</span>
+                {% else %}
+                  <span class="badge bg-light text-muted border">Evaluated</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No model training metrics available. Run <code>python train.py</code> to generate benchmark outputs.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comparative Visual Chart -->
+    {% if m.models %}
+      <div class="p-3 bg-light rounded-3 border">
+        <div class="fw-bold text-dark small mb-2">Cross-Algorithm Benchmark Comparison (Holdout Accuracy, CV F1, &amp; ROC-AUC)</div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartModelComparison"></canvas>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SECTION 7: Confusion Matrix & Diagnostic Granularity (Selected Model) -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">6. Holdout Confusion Matrix — {{ best_model }}</h2>
+        <span class="badge bg-light text-muted border">N = {{ m.n_test if m.n_test else 1200 }} Test Records</span>
+      </div>
+      <div class="p-3">
+        {% if best_metrics and best_metrics.confusion %}
+          <div class="table-responsive mb-3">
+            <table class="table table-bordered text-center align-middle mb-0">
+              <thead class="table-light small">
+                <tr>
+                  <th class="text-muted">Actual \ Predicted</th>
+                  {% for lbl in labels %}
+                    <th class="fw-bold text-dark">{{ lbl }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in best_metrics.confusion %}
+                  {% set actual_idx = loop.index0 %}
+                  <tr>
+                    <th class="table-light small fw-bold text-start">{{ labels[actual_idx] }}</th>
+                    {% for count in row %}
+                      {% set pred_idx = loop.index0 %}
+                      {% if actual_idx == pred_idx %}
+                        <td class="bg-success-subtle text-success fw-bold fs-6">
+                          {{ count }}
+                          <span class="d-block small text-muted fw-normal">TP</span>
+                        </td>
+                      {% else %}
+                        <td class="text-muted">
+                          {{ count }}
+                        </td>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-light border small text-muted mb-0">
+            <strong>Clinical Safety Highlight:</strong> Notice that only 
+            {% if best_metrics.confusion|length >= 3 %}
+              <strong>{{ best_metrics.confusion[2][0] }}</strong> actual High Risk patient(s) were misclassified into Low Risk, achieving an extreme under-triage error rate of only 
+              {% set hr_actual = best_metrics.confusion[2]|sum %}
+              {{ ((best_metrics.confusion[2][0] / hr_actual) * 100)|round(1) }}% ({{ best_metrics.confusion[2][0] }}/{{ hr_actual }}).
+            {% else %}
+              minimal cases are misclassified across polar risk categories.
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">Confusion matrix not available.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Class-Level Diagnostic Breakdown Table -->
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">Class-Level Sensitivity &amp; Specificity</h2>
+        <span class="badge bg-light text-muted border">Diagnostic Granularity</span>
+      </div>
+      <div class="p-3">
+        {% if confusion_details %}
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle small mb-3">
+              <thead class="table-light">
+                <tr>
+                  <th>Target Class</th>
+                  <th class="text-center">Support (N)</th>
+                  <th class="text-center">Recall (Sensitivity)</th>
+                  <th class="text-center">Precision (PPV)</th>
+                  <th class="text-center">Specificity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in confusion_details %}
+                  <tr>
+                    <td class="fw-bold">{{ c.class_name }}</td>
+                    <td class="text-center">{{ c.actual_support }}</td>
+                    <td class="text-center fw-semibold text-teal" style="color: var(--primary-teal);">
+                      {{ c.recall }}%
+                    </td>
+                    <td class="text-center">{{ c.precision }}%</td>
+                    <td class="text-center">{{ c.specificity }}%</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-muted small mb-0">
+            <strong>Sensitivity (Recall)</strong> reflects the algorithm's power to correctly flag at-risk patients, whereas <strong>Specificity</strong> prevents healthy individuals from receiving burdensome dietary interventions.
+          </p>
+        {% else %}
+          <div class="text-center py-4 text-muted small">Per-class diagnostic breakdown not available.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 8: Global Permutation Feature Importance -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">7. Global Permutation Feature Importance</h2>
+    <span class="badge bg-light text-muted border">Permutation Scored (Model-Agnostic)</span>
+  </div>
+  <div class="p-3">
+    <div class="row g-4 align-items-center">
+      <div class="col-lg-7">
+        <div style="position: relative; height: 320px;">
+          <canvas id="chartImportance"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="h6 fw-bold text-dark mb-2">Physiological Interpretation of Top Drivers</div>
+        <p class="text-muted small mb-3">
+          Permutation importance scores measure the increase in model prediction error when a feature's values are randomly shuffled. Higher scores denote greater reliance on that factor:
+        </p>
+        <ul class="text-muted small ps-3 mb-0">
+          <li class="mb-2"><strong>Patient Age (16.07%):</strong> Strongest predictor; elderly metabolism and vulnerability significantly drive moderate/high risk stratification.</li>
+          <li class="mb-2"><strong>Body Mass Index (15.54%):</strong> Direct anthropometric indicator of wasting (&lt;18.5) and metabolic disease risk (&ge;30).</li>
+          <li class="mb-2"><strong>Dietary Diversity (13.61%):</strong> Micronutrient variety score; low diversity directly indicates dietary deprivation.</li>
+          <li class="mb-2"><strong>Recent Infection / Illness (7.19%):</strong> Acute catabolism and illness episodes precipitate rapid nutritional deterioration.</li>
+          <li class="mb-0"><strong>Household Income (4.98%):</strong> Structural socioeconomic determinant of caloric and micronutrient access.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 9: Candidate Algorithm Architecture Details -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">8. Comparative Algorithm Architecture &amp; Regularization Details</h2>
+    <span class="badge bg-light text-muted border">Algorithmic Diversity</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-clinical align-middle mb-0 small">
+      <thead>
+        <tr>
+          <th>Algorithm</th>
+          <th>Mathematical Paradigm</th>
+          <th>Implementation Framework</th>
+          <th>Regularization Strategy</th>
+          <th>Key Algorithmic Strengths</th>
+          <th>Inherent Architectural Limitations</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for algo in algorithms_info %}
+          <tr class="{{ 'table-success fw-semibold' if algo.name == best_model else '' }}">
+            <td class="fw-bold text-dark">
+              {{ algo.name }}
+              {% if algo.name == best_model %}<span class="badge bg-success ms-1">Winner</span>{% endif %}
+            </td>
+            <td>{{ algo.type }}</td>
+            <td class="font-monospace text-muted">{{ algo.framework }}</td>
+            <td class="font-monospace text-muted">{{ algo.regularization }}</td>
+            <td class="text-muted">{{ algo.strengths }}</td>
+            <td class="text-muted">{{ algo.limitations }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 10: Model Limitations & Evaluator Guidelines -->
+<div class="clinical-card shadow-sm">
+  <div class="card-header-clean">
+    <h2 class="h5 fw-bold mb-0">9. Technical Limitations &amp; Ethical Disclosures</h2>
+    <span class="badge bg-warning-subtle text-dark border border-warning">Evaluator Guidance</span>
+  </div>
+  <div class="p-3">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">1. Algorithmic Proxy vs. Biochemical Truth</div>
+          <p class="text-muted small mb-0">
+            Predictions are generated from reported demographic, lifestyle, and dietary features. They do not incorporate serum albumin, prealbumin, hemoglobin, or total lymphocyte count biomarkers.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">2. Synthetic Calibration Constraint</div>
+          <p class="text-muted small mb-0">
+            Current weights reflect a simulated benchmark population. Before deployment in a specific geographic clinic or hospital, the pipeline must be calibrated on regional survey microdata.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">3. Correlation vs. Causation</div>
+          <p class="text-muted small mb-0">
+            Feature attributions reflect statistical associations and predictive dependencies learned by the classifier, not verified biochemical causality or medical etiology.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-dark small mb-1">4. Clinical Triage Function</div>
+          <p class="text-muted small mb-0">
+            The platform provides early screening and risk stratification to guide healthcare resource prioritization. It does not issue standalone clinical diagnoses or prescribe therapeutic nutrition.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js Visualization Scripts -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. Class Distribution Doughnut Chart
+  const classCtx = document.getElementById('chartClassDist');
+  if (classCtx) {
+    const classCounts = {{ m.class_counts|tojson if m.class_counts else '{"Low Risk": 2672, "Moderate Risk": 1915, "High Risk": 1413}'|safe }};
+    new Chart(classCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+        datasets: [{
+          data: [
+            classCounts['Low Risk'] || 0,
+            classCounts['Moderate Risk'] || 0,
+            classCounts['High Risk'] || 0
+          ],
+          backgroundColor: ['#059669', '#d97706', '#dc2626'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+
+  // 2. Algorithm Comparison Grouped Bar Chart
+  const compCtx = document.getElementById('chartModelComparison');
+  if (compCtx) {
+    {% set model_names = m.models.keys()|list %}
+    const modelNames = {{ model_names|tojson }};
+    const accuracies = [{% for name in model_names %}{{ (m.models[name].accuracy * 100)|round(2) }},{% endfor %}];
+    const cvF1s = [{% for name in model_names %}{{ (m.models[name].cv_f1_mean if m.models[name].cv_f1_mean is defined else m.models[name].cv_f1)|round(4) * 100 }},{% endfor %}];
+    const rocAucs = [{% for name in model_names %}{{ (m.models[name].roc_auc * 100)|round(2) if m.models[name].roc_auc is defined else 0 }},{% endfor %}];
+
+    new Chart(compCtx, {
+      type: 'bar',
+      data: {
+        labels: modelNames,
+        datasets: [
+          {
+            label: 'Holdout Test Accuracy (%)',
+            data: accuracies,
+            backgroundColor: 'rgba(13, 148, 136, 0.8)',
+            borderColor: '#0d9488',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: '5-Fold CV Macro-F1 (x100)',
+            data: cvF1s,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderColor: '#10b981',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'ROC-AUC (OVR x100)',
+            data: rocAucs,
+            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: 50,
+            max: 100,
+            ticks: {
+              callback: function(value) { return value + '%'; }
+            },
+            grid: { color: '#f1f5f9' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, family: "'Plus Jakarta Sans', system-ui, sans-serif" }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Permutation Feature Importance Chart
+  const impCtx = document.getElementById('chartImportance');
+  if (impCtx) {
+    const rawImportance = {{ m.importance|tojson if m.importance else '{}'|safe }};
+    const entries = Object.entries(rawImportance).sort((a, b) => b[1] - a[1]);
+
+    new Chart(impCtx, {
+      type: 'bar',
+      data: {
+        labels: entries.map(item => item[0]),
+        datasets: [{
+          label: 'Permutation Importance Score',
+          data: entries.map(item => item[1]),
+          backgroundColor: '#0d9488',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` Importance: ${(context.raw * 100).toFixed(2)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) { return (value * 100).toFixed(0) + '%'; }
+            },
+            grid: { color: '#f1f5f9' }
+          },
+          y: {
+            grid: { display: false },
+            ticks: {
+              font: { size: 11, weight: '600' }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endmacro %}
+
+{% block body %}
+  {{ model_content() }}
+{% endblock %}
+
+{% block public_body %}
+  <div class="container py-4" style="max-width: 1280px;">
+    {{ model_content() }}
+  </div>
+{% endblock %}
+

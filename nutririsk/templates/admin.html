@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}Administrative Console — NutriRisk AI{% endblock %}
+
+{% block body %}
+<!-- Console Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="h3 fw-bold mb-0">Administrative Oversight Console</h1>
+      <span class="badge bg-warning-subtle text-dark border border-warning px-3 py-1 fw-bold">
+        Admin Access Level
+      </span>
+    </div>
+    <p class="text-muted small mb-0">
+      Multi-tenant user governance, population risk stratification telemetry, ML pipeline audits, and system security controls.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-success-subtle text-success border border-success px-3 py-2">
+      Status: {{ telemetry.system_status }}
+    </span>
+    <span class="badge bg-light text-secondary border px-3 py-2 font-monospace small">
+      {{ telemetry.server_time }}
+    </span>
+  </div>
+</div>
+
+<!-- KPI Summary Cards Row -->
+<div class="row g-3 mb-4">
+  <!-- Registered Users -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper teal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="stat-label">Registered Users</div>
+      <div class="stat-value text-teal" style="color: var(--primary-teal);">{{ users|length }}</div>
+      <div class="stat-trend neutral">Database accounts</div>
+    </div>
+  </div>
+
+  <!-- Total System Assessments -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper emerald">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div class="stat-label">Total Screenings</div>
+      <div class="stat-value text-dark">{{ s.total }}</div>
+      <div class="stat-trend positive">System-wide assessments</div>
+    </div>
+  </div>
+
+  <!-- Active Model Pipeline -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper navy">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="stat-label">Active Model</div>
+      <div class="stat-value fs-4 text-dark mt-1">{{ m.best if m.best else 'XGBoost' }}</div>
+      <div class="stat-trend neutral">
+        {% if m.models and m.best in m.models %}
+          CV F1: {{ m.models[m.best].cv_f1_mean|round(3) }}
+        {% else %}
+          Trained Pipeline
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Database & Runtime Health -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      </div>
+      <div class="stat-label">Database Storage</div>
+      <div class="stat-value fs-4 text-dark mt-1">{{ telemetry.db_size_kb }} KB</div>
+      <div class="stat-trend neutral">{{ telemetry.db_path }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Telemetry Charts Row -->
+<div class="row g-4 mb-4">
+  <!-- Risk Category Distribution Doughnut -->
+  <div class="col-lg-5">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">System Risk Stratification</h2>
+        <span class="badge bg-light text-muted border">Live Distribution</span>
+      </div>
+      <div class="p-3">
+        {% if s.total > 0 %}
+          <div style="position: relative; height: 240px;">
+            <canvas id="adminRiskChart"></canvas>
+          </div>
+          <div class="row text-center mt-3 pt-3 border-top g-2">
+            <div class="col-4">
+              <span class="badge bg-success-subtle text-success border border-success d-block py-1 mb-1">Low Risk</span>
+              <span class="fw-bold fs-6">{{ s.low_count }}</span>
+              <span class="text-muted small d-block">({{ s.risk_percentages["Low Risk"] }}%)</span>
+            </div>
+            <div class="col-4">
+              <span class="badge bg-warning-subtle text-dark border border-warning d-block py-1 mb-1">Moderate</span>
+              <span class="fw-bold fs-6">{{ s.moderate_count }}</span>
+              <span class="text-muted small d-block">({{ s.risk_percentages["Moderate Risk"] }}%)</span>
+            </div>
+            <div class="col-4">
+              <span class="badge bg-danger-subtle text-danger border border-danger d-block py-1 mb-1">High Risk</span>
+              <span class="fw-bold fs-6">{{ s.high_count }}</span>
+              <span class="text-muted small d-block">({{ s.risk_percentages["High Risk"] }}%)</span>
+            </div>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <div class="brand-icon-box mx-auto mb-2" style="width: 48px; height: 48px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/></svg>
+            </div>
+            <p class="mb-0 mt-2 small">No assessments conducted yet across the system.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Screening Activity Timeline Bar Chart -->
+  <div class="col-lg-7">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">System Screening Activity Timeline</h2>
+        <span class="badge bg-light text-muted border">Temporal Volume</span>
+      </div>
+      <div class="p-3">
+        {% if s.trend_dates and s.trend_dates|length > 0 %}
+          <div style="position: relative; height: 280px;">
+            <canvas id="adminActivityChart"></canvas>
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <div class="brand-icon-box mx-auto mb-2" style="width: 48px; height: 48px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <p class="mb-0 mt-2 small">Temporal trend will emerge as assessments are recorded over time.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Accounts & Access Governance Directory -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="h5 fw-bold mb-0">Registered User Accounts &amp; Access Governance</h2>
+      <p class="text-muted small mb-0">Manage roles, review account screening volume, and enforce privilege escalation safeguards.</p>
+    </div>
+    <span class="badge bg-light text-muted border">{{ users|length }} Active Account(s)</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-clinical align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width: 70px;">ID</th>
+          <th>Account Details</th>
+          <th>Role</th>
+          <th>Registered</th>
+          <th class="text-center">Assessments</th>
+          <th class="text-end" style="min-width: 220px;">Governance Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td class="text-muted fw-bold font-monospace">#{{ u.id }}</td>
+            <td>
+              <div class="fw-bold text-dark">{{ u.name }}</div>
+              <div class="small text-muted font-monospace">{{ u.email }}</div>
+            </td>
+            <td>
+              {% if u.role == 'admin' %}
+                <span class="badge bg-warning-subtle text-dark border border-warning">
+                  Admin
+                </span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border">
+                  User
+                </span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ u.created[:10] }}</td>
+            <td class="text-center">
+              <span class="badge bg-light text-dark border fw-bold px-2 py-1">{{ u.n }}</span>
+            </td>
+            <td class="text-end">
+              {% if u.id == session.uid %}
+                <span class="badge bg-light text-muted border px-2 py-1">
+                  Active Session (Current Admin)
+                </span>
+              {% else %}
+                <div class="btn-group btn-group-sm" role="group">
+                  {% if u.role == 'user' %}
+                    <!-- Promote to Admin -->
+                    <form action="{{ url_for('admin.change_user_role', uid=u.id) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Promote {{ u.name }} (User #{{ u.id }}) to Administrator? They will gain full system oversight privileges.');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="role" value="admin">
+                      <button type="submit" class="btn btn-sm btn-outline-warning">
+                        Promote to Admin
+                      </button>
+                    </form>
+                  {% else %}
+                    <!-- Demote to User -->
+                    <form action="{{ url_for('admin.change_user_role', uid=u.id) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Demote {{ u.name }} (Admin #{{ u.id }}) to standard User role?');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="role" value="user">
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        Demote to User
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  <!-- Delete User -->
+                  <form action="{{ url_for('admin.delete_user', uid=u.id) }}" method="POST" class="d-inline ms-1"
+                        onsubmit="return confirm('CRITICAL: Permanently delete account for {{ u.name }} and remove all their associated clinical assessment records? This action cannot be reversed.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Dual Cards: Model Information & Dataset Provenance -->
+<div class="row g-4 mb-4">
+  <!-- Active Model Information & Validation Metrics -->
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">Active Model &amp; Validation Benchmarks</h2>
+        <span class="badge bg-teal-subtle text-teal border">ML Pipeline</span>
+      </div>
+      <div class="p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <div class="h6 fw-bold mb-0 text-dark">{{ m.best if m.best else 'XGBoost Classifier' }}</div>
+            <div class="small text-muted">Artifact: <code>model/model.joblib</code> &bull; Version: <code>{{ active_meta.artifact_version if active_meta else 'v1.0-joblib' }}</code></div>
+          </div>
+          <span class="badge bg-success-subtle text-success border border-success">Active Production</span>
+        </div>
+
+        <!-- Evaluation Metrics Table -->
+        {% if m.models and m.best in m.models %}
+          {% set bm = m.models[m.best] %}
+          <div class="table-responsive mb-3">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <thead class="table-light small">
+                <tr>
+                  <th>Validation Metric</th>
+                  <th class="text-end">Holdout Test / 5-Fold CV Score</th>
+                </tr>
+              </thead>
+              <tbody class="small">
+                <tr>
+                  <td class="fw-semibold">5-Fold CV Macro-F1 (Selection Metric)</td>
+                  <td class="text-end fw-bold text-teal" style="color: var(--primary-teal);">
+                    {{ bm.cv_f1_mean|round(4) if bm.cv_f1_mean else (bm.cv_f1|round(4) if bm.cv_f1 else 'N/A') }}
+                    {% if bm.cv_f1_std %}<span class="text-muted fw-normal">± {{ bm.cv_f1_std|round(4) }}</span>{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Holdout Test Accuracy</td>
+                  <td class="text-end fw-semibold">{{ (bm.accuracy * 100)|round(2) }}%</td>
+                </tr>
+                <tr>
+                  <td>Holdout Macro Precision</td>
+                  <td class="text-end">{{ (bm.precision * 100)|round(2) }}%</td>
+                </tr>
+                <tr>
+                  <td>Holdout Macro Recall</td>
+                  <td class="text-end">{{ (bm.recall * 100)|round(2) }}%</td>
+                </tr>
+                <tr>
+                  <td>Holdout Multiclass ROC-AUC</td>
+                  <td class="text-end fw-semibold">{{ bm.roc_auc|round(4) if bm.roc_auc else 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        <div class="small text-muted">
+          <div class="fw-bold text-dark mb-1">Preprocessing &amp; Leakage Prevention Pipeline:</div>
+          <ul class="ps-3 mb-0">
+            <li>Numerical Imputation: <strong>Median</strong> (fit on training folds only)</li>
+            <li>Categorical Imputation: <strong>Mode</strong> (fit on training folds only)</li>
+            <li>Feature Scaling: <strong>StandardScaler</strong></li>
+            <li>Categorical Encoding: <strong>OneHotEncoder</strong></li>
+            <li>Feature Engineering: <strong>BMI</strong> computed deterministically</li>
+            <li>Protocol: <strong>Stratified 80:20 split</strong> ({{ m.n_train }} train, {{ m.n_test }} test), 5-fold CV</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dataset Provenance & Limitations -->
+  <div class="col-lg-6">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">Dataset Provenance &amp; Benchmark Scope</h2>
+        <span class="badge bg-light text-muted border">Research Metadata</span>
+      </div>
+      <div class="p-3">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small text-muted">Data Source:</span>
+            <span class="badge bg-warning-subtle text-dark border border-warning">
+              {{ 'Real Research Data' if dataset_meta.is_real_data else 'Synthetic Benchmark' }}
+            </span>
+          </div>
+          <p class="small text-dark mb-0 fw-semibold">{{ dataset_meta.source }}</p>
+        </div>
+
+        <div class="row g-2 mb-3 small">
+          <div class="col-sm-6">
+            <span class="text-muted d-block">Licensing:</span>
+            <span class="fw-semibold text-dark">{{ dataset_meta.license }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted d-block">Sample Cohort Size:</span>
+            <span class="fw-semibold text-dark">{{ dataset_meta.n_subjects }} records</span>
+          </div>
+          <div class="col-12 mt-2">
+            <span class="text-muted d-block">Target Population Scope:</span>
+            <span class="text-dark">{{ dataset_meta.population_description }}</span>
+          </div>
+        </div>
+
+        <div class="alert alert-warning py-2 px-3 small mb-0 border-warning">
+          <strong>Academic &amp; Benchmark Disclosure:</strong>
+          <ul class="mb-0 ps-3 mt-1">
+            {% for lim in dataset_meta.known_limitations %}
+              <li>{{ lim }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- System Activity Audit & Runtime Telemetry Row -->
+<div class="row g-4 mb-4">
+  <!-- System Activity (Latest 10 Assessments) -->
+  <div class="col-lg-7">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean d-flex justify-content-between align-items-center">
+        <h2 class="h5 fw-bold mb-0">Recent System Assessments (Latest 10)</h2>
+        <span class="badge bg-light text-muted border">Live Feed</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover table-clinical align-middle mb-0">
+          <thead>
+            <tr>
+              <th style="width: 70px;">ID</th>
+              <th>Timestamp</th>
+              <th>Conducted By</th>
+              <th>Risk Tier</th>
+              <th>Confidence</th>
+              <th class="text-end">Record</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in recent %}
+              {% set rk = r.risk.split()[0] %}
+              <tr>
+                <td class="text-muted fw-bold font-monospace">#{{ r.id }}</td>
+                <td class="small">{{ r.created.replace('T', ' ')[:19] }}</td>
+                <td class="fw-semibold text-dark">{{ r.user_name }}</td>
+                <td><span class="risk-badge {{ rk }}">{{ r.risk }}</span></td>
+                <td class="small fw-semibold">{{ (r.confidence * 100)|round(1) }}%</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-slate" href="/result/{{ r.id }}">Inspect</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted small">
+                  No assessment activity recorded in the database.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Runtime Environment & Telemetry -->
+  <div class="col-lg-5">
+    <div class="clinical-card shadow-sm h-100">
+      <div class="card-header-clean">
+        <h2 class="h5 fw-bold mb-0">Runtime &amp; Telemetry Status</h2>
+        <span class="badge bg-light text-muted border">System Info</span>
+      </div>
+      <div class="p-3">
+        <table class="table table-sm table-borderless align-middle small mb-0">
+          <tbody>
+            <tr>
+              <td class="text-muted">Python Runtime</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.python_version }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Flask Framework</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.flask_version }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">scikit-learn</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.sklearn_version }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">XGBoost Engine</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.xgboost_version }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">SHAP Explainer</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.shap_version }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">SQLite Storage</td>
+              <td class="text-end font-monospace fw-semibold">{{ telemetry.db_path }} ({{ telemetry.db_size_kb }} KB)</td>
+            </tr>
+            <tr class="border-top">
+              <td class="text-muted pt-2">System Status</td>
+              <td class="text-end pt-2 text-success fw-bold">{{ telemetry.system_status }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Persistent Administrative Audit Trail Table -->
+<div class="clinical-card shadow-sm mb-4">
+  <div class="card-header-clean d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="h5 fw-bold mb-0">Administrative Security Audit Trail</h2>
+      <p class="text-muted small mb-0">Immutable chronological record of administrative actions, role modifications, and account changes.</p>
+    </div>
+    <span class="badge bg-light text-muted border">Security Logs (Latest 20)</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-clinical align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width: 70px;">Event ID</th>
+          <th>Timestamp</th>
+          <th>Admin Actor</th>
+          <th>Action Type</th>
+          <th>Target User</th>
+          <th>Action Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in audit_logs %}
+          <tr>
+            <td class="text-muted font-monospace small">#{{ log.id }}</td>
+            <td class="small text-muted">{{ log.created_at.replace('T', ' ')[:19] }}</td>
+            <td class="fw-semibold text-dark">{{ log.admin_name }}</td>
+            <td>
+              {% if 'ADMIN' in log.action %}
+                <span class="badge bg-warning-subtle text-dark border border-warning">{{ log.action }}</span>
+              {% elif 'DELETED' in log.action %}
+                <span class="badge bg-danger-subtle text-danger border border-danger">{{ log.action }}</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border">{{ log.action }}</span>
+              {% endif %}
+            </td>
+            <td class="font-monospace small">
+              {% if log.target_user_id %}
+                User #{{ log.target_user_id }}
+              {% else %}
+                <span class="text-muted">System</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ log.details }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted small">
+              No administrative security events recorded yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Chart.js Initialization Scripts -->
+{% if s.total > 0 %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 1. Doughnut Chart: Risk Distribution
+  const riskCtx = document.getElementById('adminRiskChart');
+  if (riskCtx) {
+    new Chart(riskCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+        datasets: [{
+          data: [{{ s.low_count }}, {{ s.moderate_count }}, {{ s.high_count }}],
+          backgroundColor: ['#059669', '#d97706', '#dc2626'],
+          hoverOffset: 6,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              padding: 16,
+              font: { size: 12, family: "'Plus Jakarta Sans', system-ui, sans-serif" }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = {{ s.total }};
+                const val = context.raw || 0;
+                const pct = ((val / total) * 100).toFixed(1);
+                return ` ${context.label}: ${val} (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
+
+  // 2. Bar Chart: Assessment Activity Timeline
+  const activityCtx = document.getElementById('adminActivityChart');
+  if (activityCtx) {
+    const dates = {{ (s.trend_dates if s.trend_dates else [])|tojson }};
+    const counts = {{ (s.trend_counts if s.trend_counts else [])|tojson }};
+
+    new Chart(activityCtx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Total Assessments',
+          data: counts,
+          backgroundColor: 'rgba(13, 148, 136, 0.75)',
+          borderColor: '#0d9488',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 32
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, precision: 0 },
+            grid: { color: '#f1f5f9' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.raw} assessment(s) conducted`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

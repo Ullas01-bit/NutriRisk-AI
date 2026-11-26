@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard — NutriRisk AI{% endblock %}
+
+{% block body %}
+<!-- Dashboard Welcome Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="h3 fw-bold mb-0">Welcome back, {{ user.name }}</h1>
+      <span class="badge bg-teal-subtle text-teal text-capitalize border" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+        {{ user.role }} Account
+      </span>
+    </div>
+    <p class="text-muted small mb-0">
+      Personal Nutritional Screening Portal &bull; Real-time Risk Stratification &amp; Longitudinal Activity
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="/predict" class="btn btn-primary-teal d-inline-flex align-items-center gap-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Quick Start Assessment</span>
+    </a>
+    <a href="/history" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>View History</span>
+    </a>
+  </div>
+</div>
+
+<!-- Profile Summary & KPI Cards Row -->
+<div class="row g-3 mb-4">
+  <!-- Total Assessments -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper teal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div class="stat-label">Total Assessments</div>
+      <div class="stat-value text-teal" style="color: var(--primary-teal);">{{ total_count }}</div>
+      <div class="stat-trend neutral">
+        <span>&check;</span> Conducted by you
+      </div>
+    </div>
+  </div>
+
+  <!-- Latest Assessment Date -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper emerald">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="stat-label">Latest Assessment</div>
+      <div class="stat-value fs-5 mt-2 text-dark">
+        {% if latest %}
+          {{ latest.created[:10] }}
+          <div class="small fw-normal text-muted mt-1 text-truncate">Subject: {{ latest.subject }}</div>
+        {% else %}
+          <span class="text-muted fs-6">No assessments yet</span>
+        {% endif %}
+      </div>
+      <div class="stat-trend neutral">
+        {% if latest %}
+          Time: {{ latest.created[11:16] }}
+        {% else %}
+          Pending first screening
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Latest Predicted Risk -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="stat-label">Latest Predicted Risk</div>
+      <div class="stat-value fs-5 mt-2">
+        {% if latest %}
+          <span class="risk-badge {{ latest.risk.split(' ')[0] }}">{{ latest.risk }}</span>
+          <div class="small fw-normal text-muted mt-1">
+            Confidence: {{ "%.1f"|format(latest.confidence * 100) }}% &bull; BMI: {{ "%.1f"|format(latest.bmi) }}
+          </div>
+        {% else %}
+          <span class="text-muted fs-6">Awaiting evaluation</span>
+        {% endif %}
+      </div>
+      <div class="stat-trend neutral">
+        {% if latest %}
+          <a href="/result/{{ latest.id }}" class="text-decoration-none fw-bold" style="color: var(--primary-teal);">View Result &rarr;</a>
+        {% else %}
+          Ready for input
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- User Account Profile -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-kpi-card">
+      <div class="stat-icon-wrapper navy">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="stat-label">User Profile</div>
+      <div class="stat-value fs-6 mt-1 text-truncate text-dark" title="{{ user.email }}">
+        {{ user.email }}
+      </div>
+      <div class="small text-muted mb-2">Member since {{ user.created[:10] }}</div>
+      <div class="stat-trend neutral">
+        <a href="/profile" class="text-decoration-none text-muted">Manage Profile &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if total_count == 0 %}
+  <!-- Helpful Empty State for New Users -->
+  <div class="clinical-card text-center py-5 shadow-sm mb-4">
+    <div class="brand-icon-box mx-auto mb-3" style="width: 64px; height: 64px;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <h2 class="h4 fw-bold text-dark mb-2">Welcome to your NutriRisk AI Dashboard!</h2>
+    <p class="text-muted mb-4 max-w-500 mx-auto" style="max-width: 580px;">
+      You have not recorded any nutritional risk assessments yet. NutriRisk AI combines 13 anthropometric,
+      dietary diversity, meal frequency, and lifestyle variables to classify adult malnutrition vulnerability.
+    </p>
+
+    <!-- Onboarding Step Preview -->
+    <div class="row g-3 text-start max-w-500 mx-auto mb-4" style="max-width: 760px;">
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-teal mb-1" style="color: var(--primary-teal);">Step 1: Anthropometrics</div>
+          <div class="small text-muted">Input height, weight, age, and sex to automatically compute Body Mass Index (BMI).</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-teal mb-1" style="color: var(--primary-teal);">Step 2: Dietary Habits</div>
+          <div class="small text-muted">Record daily meal frequency, dietary food group count, cooking access, and income tier.</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <div class="fw-bold text-teal mb-1" style="color: var(--primary-teal);">Step 3: AI Stratification</div>
+          <div class="small text-muted">Receive Low, Moderate, or High Risk predictions with transparent Explainable AI attributions.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-center gap-3">
+      <a href="/predict" class="btn btn-primary-teal btn-lg px-4 d-inline-flex align-items-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Start Your First Assessment</span>
+      </a>
+      <a href="/model" class="btn btn-outline-secondary btn-lg px-4 d-inline-flex align-items-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Explore Model Benchmarks</span>
+      </a>
+    </div>
+  </div>
+
+{% else %}
+
+  <!-- Visual Analytics & Charts Section -->
+  <div class="row g-4 mb-4">
+    <!-- Chart 1: Historical Risk Distribution -->
+    <div class="col-lg-5">
+      <div class="clinical-card h-100 mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h5 fw-bold mb-1">Historical Risk Distribution</h2>
+            <p class="text-muted small mb-0">Breakdown of your completed assessments by risk tier</p>
+          </div>
+          <span class="badge bg-light text-dark border">{{ total_count }} Total</span>
+        </div>
+
+        <div style="position: relative; height: 240px;" class="d-flex align-items-center justify-content-center">
+          <canvas id="userRiskDoughnutChart"></canvas>
+        </div>
+
+        <!-- Risk Category Stat Summary Badges -->
+        <div class="row g-2 mt-3 pt-3 border-top text-center">
+          <div class="col-4">
+            <div class="p-2 rounded-2" style="background-color: var(--risk-low-bg);">
+              <div class="small fw-bold" style="color: var(--risk-low);">Low Risk</div>
+              <div class="fs-5 fw-bold" style="color: var(--risk-low);">{{ risk_counts['Low Risk'] }}</div>
+              <div class="small text-muted">{{ risk_percentages['Low Risk'] }}%</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded-2" style="background-color: var(--risk-moderate-bg);">
+              <div class="small fw-bold" style="color: var(--risk-moderate);">Moderate</div>
+              <div class="fs-5 fw-bold" style="color: var(--risk-moderate);">{{ risk_counts['Moderate Risk'] }}</div>
+              <div class="small text-muted">{{ risk_percentages['Moderate Risk'] }}%</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded-2" style="background-color: var(--risk-high-bg);">
+              <div class="small fw-bold" style="color: var(--risk-high);">High Risk</div>
+              <div class="fs-5 fw-bold" style="color: var(--risk-high);">{{ risk_counts['High Risk'] }}</div>
+              <div class="small text-muted">{{ risk_percentages['High Risk'] }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Assessment Activity Over Time -->
+    <div class="col-lg-7">
+      <div class="clinical-card h-100 mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h5 fw-bold mb-1">Assessment Activity Timeline</h2>
+            <p class="text-muted small mb-0">Screening frequency and evaluation volume over time</p>
+          </div>
+          <span class="badge bg-teal-subtle text-teal border" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+            {{ activity_dates|length }} Active Days
+          </span>
+        </div>
+
+        <div style="position: relative; height: 260px;">
+          <canvas id="userActivityChart"></canvas>
+        </div>
+        <div class="small text-muted mt-2 text-center">
+          Assessments recorded across calendar dates
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Assessments Table -->
+  <div class="clinical-card mb-4">
+    <div class="card-header-clean">
+      <div>
+        <h2 class="h5 fw-bold mb-1">Recent Assessment Records</h2>
+        <p class="text-muted small mb-0">Latest nutritional screenings conducted under your account</p>
+      </div>
+      <a href="/history" class="btn btn-sm btn-outline-secondary">
+        View All History ({{ total_count }}) &rarr;
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-muted small text-uppercase">
+          <tr>
+            <th>ID</th>
+            <th>Subject / Patient</th>
+            <th>Date &amp; Time</th>
+            <th>BMI (kg/m²)</th>
+            <th>Predicted Risk</th>
+            <th>Confidence</th>
+            <th>Model</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_assessments %}
+            <tr>
+              <td class="fw-bold text-muted">#{{ r.id }}</td>
+              <td>
+                <div class="fw-semibold text-dark">{{ r.subject }}</div>
+              </td>
+              <td class="small text-muted">
+                {{ r.created[:10] }} <span class="opacity-75">{{ r.created[11:16] }}</span>
+              </td>
+              <td class="fw-semibold">
+                {{ "%.1f"|format(r.bmi) }}
+              </td>
+              <td>
+                <span class="risk-badge {{ r.risk.split(' ')[0] }}">
+                  {{ r.risk }}
+                </span>
+              </td>
+              <td class="fw-semibold">
+                {{ "%.1f"|format(r.confidence * 100) }}%
+              </td>
+              <td class="small text-muted">
+                {{ r.model_version }}
+              </td>
+              <td class="text-end">
+                <div class="d-inline-flex gap-1">
+                  <a href="/result/{{ r.id }}" class="btn btn-sm btn-outline-primary" title="View Detailed Result">
+                    View
+                  </a>
+                  <a href="/result/{{ r.id }}/pdf" class="btn btn-sm btn-outline-secondary" title="Download PDF Report">
+                    PDF
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% endif %}
+
+<!-- Clinical Longitudinal Guidance & Disclaimer -->
+<div class="alert alert-warning border-0 bg-warning-subtle text-dark p-3 rounded-3 shadow-sm">
+  <div class="d-flex gap-3">
+    <div class="text-warning flex-shrink-0">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div>
+      <div class="fw-bold mb-1">Clinical Longitudinal Decision-Support Guidance</div>
+      <div class="small leading-normal text-slate">
+        NutriRisk AI produces mathematical probability distributions and risk stratification categories based on self-reported clinical and lifestyle parameters collected at a specific point in time. 
+        <strong>Variations or shifts in predicted risk category across sequential assessment dates do NOT constitute proof of clinical recovery, health improvement, or disease progression.</strong> 
+        Model outputs represent screening aids to prioritize nutritional triage and must be interpreted in conjunction with formal clinical history, biochemical diagnostic markers, anthropometric skinfold measurements, and licensed medical consultation.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if total_count > 0 %}
+<!-- Chart.js Script for Personal Visualizations -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. Doughnut Chart: Risk Distribution
+  const riskCtx = document.getElementById('userRiskDoughnutChart');
+  if (riskCtx) {
+    new Chart(riskCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+        datasets: [{
+          data: [
+            {{ risk_counts['Low Risk'] }},
+            {{ risk_counts['Moderate Risk'] }},
+            {{ risk_counts['High Risk'] }}
+          ],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          hoverBackgroundColor: ['#059669', '#d97706', '#dc2626'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              font: { size: 12, family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto' }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = {{ total_count }};
+                const val = context.raw || 0;
+                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                return ` ${context.label}: ${val} (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
+
+  // 2. Bar/Line Chart: Assessment Activity Timeline
+  const activityCtx = document.getElementById('userActivityChart');
+  if (activityCtx) {
+    const dates = {{ activity_dates|tojson }};
+    const counts = {{ activity_counts|tojson }};
+
+    new Chart(activityCtx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Assessments Conducted',
+          data: counts,
+          backgroundColor: 'rgba(13, 148, 136, 0.75)',
+          borderColor: '#0d9488',
+          borderWidth: 1.5,
+          borderRadius: 6,
+          maxBarThickness: 36
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            },
+            grid: {
+              color: '#f1f5f9'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.raw} assessment(s) recorded`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

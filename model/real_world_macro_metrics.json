@@ -1,0 +1,36 @@
+{
+  "source": "Empirical Multi-National FAO/GHI/UNICEF Country-Level Dataset",
+  "n_records": 4704,
+  "countries_covered": 232,
+  "years_covered": "2000-2022",
+  "models": {
+    "Logistic Regression": {
+      "accuracy": 0.9373,
+      "macro_f1": 0.9354,
+      "roc_auc": 0.9857,
+      "cv_f1_mean": 0.9206,
+      "cv_f1_std": 0.0078
+    },
+    "Decision Tree": {
+      "accuracy": 0.9692,
+      "macro_f1": 0.9692,
+      "roc_auc": 0.9914,
+      "cv_f1_mean": 0.9601,
+      "cv_f1_std": 0.0061
+    },
+    "Random Forest": {
+      "accuracy": 0.9692,
+      "macro_f1": 0.9691,
+      "roc_auc": 0.9951,
+      "cv_f1_mean": 0.9636,
+      "cv_f1_std": 0.0081
+    },
+    "Gradient Boosting": {
+      "accuracy": 0.9724,
+      "macro_f1": 0.9722,
+      "roc_auc": 0.9952,
+      "cv_f1_mean": 0.9639,
+      "cv_f1_std": 0.0069
+    }
+  }
+}

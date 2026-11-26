@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}400 Bad Request — NutriRisk AI{% endblock %}
+
+{% macro error_400_content() %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 text-center">
+      <div class="clinical-card p-5 shadow-sm border-0">
+        <div class="stat-icon-wrapper amber mx-auto mb-4" style="width: 72px; height: 72px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <span class="badge bg-amber-subtle text-amber border border-amber px-3 py-1 mb-3 fw-bold">
+          HTTP Error 400 &bull; Bad Request
+        </span>
+        <h1 class="h3 fw-bold text-navy mb-2">Invalid Request or Security Token</h1>
+        <p class="text-muted mb-4">
+          {{ error_message or "The server could not process your request due to malformed syntax, missing required parameters, or an expired security token (CSRF). Please verify your input or refresh the page." }}
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+          {% if session.get('uid') %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary-teal">
+              &larr; Return to Dashboard
+            </a>
+          {% else %}
+            <a href="{{ url_for('main.home') }}" class="btn btn-primary-teal">
+              &larr; Return to Home
+            </a>
+          {% endif %}
+          <a href="javascript:history.back()" class="btn btn-outline-slate">
+            Go Back &amp; Retry
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% block body %}
+  {{ error_400_content() }}
+{% endblock %}
+
+{% block public_body %}
+  {{ error_400_content() }}
+{% endblock %}

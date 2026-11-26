@@ -1,0 +1,17 @@
+{
+  "run_id": "nutririsk-audit-run-001",
+  "repo": "NutriRisk-AI",
+  "target": "d:/MAJOR PROJECT",
+  "source_ref": "v1.0-real-dataset-integrated",
+  "profile": "healthcare-web-ai-clinical-decision-support",
+  "execution_policy": "sandboxed-source-and-local-only",
+  "selected_companion_files": [
+    "WEB-PROTOCOL-AND-AUTH.md",
+    "DATA-ISOLATION-AND-LIFECYCLE.md",
+    "AI-AND-LLM.md",
+    "CLIENT-SIDE.md",
+    "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md"
+  ],
+  "run_status": "completed",
+  "audit_timestamp": "2026-10-23T01:31:43.565903"
+}

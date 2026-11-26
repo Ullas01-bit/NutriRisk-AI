@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}Healthcare Analytics Dashboard — NutriRisk AI{% endblock %}
+
+{% block body %}
+<!-- Page Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="h3 fw-bold mb-0">Healthcare Analytics &amp; Population Surveillance</h1>
+      <span class="badge bg-teal-subtle text-teal border" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+        {% if is_admin and scope == 'all' %}System-Wide Cohort{% else %}Personal Screening Cohort{% endif %}
+      </span>
+    </div>
+    <p class="text-muted small mb-0">
+      Aggregated epidemiological risk patterns, anthropometric distributions, and longitudinal screening trends.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="/predict" class="btn btn-primary-teal d-inline-flex align-items-center gap-2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>New Assessment</span>
+    </a>
+    <a href="/dashboard" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span>User Dashboard</span>
+    </a>
+  </div>
+</div>
+
+<!-- Date-Range & Cohort Filter Toolbar -->
+<div class="clinical-card shadow-sm mb-4">
+  <form method="get" action="/analytics" id="analyticsFilterForm" class="row g-2 align-items-end">
+    <!-- From Date -->
+    <div class="col-lg-3 col-md-4 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">From Date</label>
+      <input type="date" name="start_date" id="inputStartDate" class="form-control form-control-sm py-2" value="{{ start_date }}">
+    </div>
+
+    <!-- To Date -->
+    <div class="col-lg-3 col-md-4 col-sm-6">
+      <label class="form-label small fw-bold text-muted mb-1">To Date</label>
+      <input type="date" name="end_date" id="inputEndDate" class="form-control form-control-sm py-2" value="{{ end_date }}">
+    </div>
+
+    <!-- Quick Preset Buttons -->
+    <div class="col-lg-3 col-md-4 col-sm-12">
+      <label class="form-label small fw-bold text-muted mb-1">Quick Date Presets</label>
+      <div class="btn-group btn-group-sm w-100" role="group">
+        <a href="{{ url_for('analytics.analytics', preset='7d', scope=scope) }}" class="btn btn-outline-secondary {{ 'active' if preset == '7d' else '' }}">7D</a>
+        <a href="{{ url_for('analytics.analytics', preset='30d', scope=scope) }}" class="btn btn-outline-secondary {{ 'active' if preset == '30d' else '' }}">30D</a>
+        <a href="{{ url_for('analytics.analytics', preset='ytd', scope=scope) }}" class="btn btn-outline-secondary {{ 'active' if preset == 'ytd' else '' }}">YTD</a>
+        <a href="{{ url_for('analytics.analytics', scope=scope) }}" class="btn btn-outline-secondary {{ 'active' if not preset and not start_date and not end_date else '' }}">All</a>
+      </div>
+    </div>
+
+    <!-- Admin Scope Selector (If Admin) -->
+    {% if is_admin %}
+      <div class="col-lg-2 col-md-6 col-sm-6">
+        <label class="form-label small fw-bold text-muted mb-1">Cohort Scope</label>
+        <select name="scope" class="form-select form-select-sm py-2">
+          <option value="all" {{ 'selected' if scope == 'all' }}>All Population (Admin)</option>
+          <option value="personal" {{ 'selected' if scope == 'personal' }}>My Screenings Only</option>
+        </select>
+      </div>
+    {% else %}
+      <input type="hidden" name="scope" value="personal">
+    {% endif %}
+
+    <!-- Filter Action Buttons -->
+    <div class="col-lg-1 col-md-6 col-sm-6 d-flex gap-1">
+      <button type="submit" class="btn btn-primary-teal w-100 py-2" title="Apply Date Filter">
+        Filter
+      </button>
+      {% if start_date or end_date or preset %}
+        <a href="{{ url_for('analytics.analytics', scope=scope) }}" class="btn btn-outline-secondary py-2" title="Reset date filters">
+          &times;
+        </a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Active Filter Indicators -->
+  {% if start_date or end_date or preset or (is_admin and scope == 'personal') %}
+    <div class="d-flex align-items-center gap-2 flex-wrap pt-3 mt-3 border-top small">
+      <span class="text-muted fw-bold">Active Filters:</span>
+      {% if start_date %}
+        <span class="badge bg-light text-dark border">From: <strong>{{ start_date }}</strong></span>
+      {% endif %}
+      {% if end_date %}
+        <span class="badge bg-light text-dark border">To: <strong>{{ end_date }}</strong></span>
+      {% endif %}
+      {% if preset %}
+        <span class="badge bg-light text-dark border">Preset: <strong>{{ preset|upper }}</strong></span>
+      {% endif %}
+      {% if is_admin and scope == 'personal' %}
+        <span class="badge bg-light text-dark border">Scope: <strong>Personal Records</strong></span>
+      {% endif %}
+      <a href="{{ url_for('analytics.analytics') }}" class="text-danger small text-decoration-none fw-semibold ms-auto">
+        Reset All Filters &times;
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+{% if s.total == 0 %}
+  <!-- Meaningful Empty State when no data is available -->
+  <div class="clinical-card text-center py-5 shadow-sm mb-4">
+    <div class="brand-icon-box mx-auto mb-3" style="width: 64px; height: 64px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    </div>
+    {% if start_date or end_date or preset %}
+      <h2 class="h5 fw-bold text-dark mb-2">No Assessments in Selected Range</h2>
+      <p class="text-muted small mb-4 max-w-500 mx-auto" style="max-width: 500px;">
+        No screening records were found between {{ start_date or 'the beginning' }} and {{ end_date or 'today' }}. 
+        Try broadening your date filter or reset to view all historical data.
+      </p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{{ url_for('analytics.analytics', scope=scope) }}" class="btn btn-sm btn-outline-secondary">Reset Date Range</a>
+        <a href="/predict" class="btn btn-sm btn-primary-teal">+ New Assessment</a>
+      </div>
+    {% else %}
+      <h2 class="h5 fw-bold text-dark mb-2">No Clinical Assessment Records Yet</h2>
+      <p class="text-muted small mb-4 max-w-500 mx-auto" style="max-width: 500px;">
+        There are currently no recorded nutritional screenings in this cohort. Begin screening individuals to generate real-time population epidemiology distributions and trend analytics.
+      </p>
+      <a href="/predict" class="btn btn-primary-teal px-4">+ Conduct First Assessment</a>
+    {% endif %}
+  </div>
+
+{% else %}
+
+  <!-- Top KPI Stat Cards (4 Cards: Total, Low, Moderate, High) -->
+  <div class="row g-3 mb-4">
+    <!-- Total Screened -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-kpi-card">
+        <div class="stat-icon-wrapper teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-label">Total Screened</div>
+        <div class="stat-value text-teal" style="color: var(--primary-teal);">{{ s.total }}</div>
+        <div class="stat-trend neutral">
+          <span>&check;</span> Evaluated records
+        </div>
+      </div>
+    </div>
+
+    <!-- Low Risk Count -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-kpi-card">
+        <div class="stat-icon-wrapper emerald">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>
+        </div>
+        <div class="stat-label">Low Risk Cohort</div>
+        <div class="stat-value text-success" style="color: var(--risk-low);">{{ s.low_count }}</div>
+        <div class="stat-trend positive">
+          <span>{{ s.risk_percentages['Low Risk'] }}%</span> of cohort
+        </div>
+      </div>
+    </div>
+
+    <!-- Moderate Risk Count -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-kpi-card">
+        <div class="stat-icon-wrapper amber">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="stat-label">Moderate Risk Cohort</div>
+        <div class="stat-value text-warning" style="color: var(--risk-moderate);">{{ s.moderate_count }}</div>
+        <div class="stat-trend neutral">
+          <span>{{ s.risk_percentages['Moderate Risk'] }}%</span> of cohort
+        </div>
+      </div>
+    </div>
+
+    <!-- High Risk Count -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-kpi-card">
+        <div class="stat-icon-wrapper" style="background-color: var(--risk-high-bg); color: var(--risk-high);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-label">High Risk (Malnutrition)</div>
+        <div class="stat-value text-danger" style="color: var(--risk-high);">{{ s.high_count }}</div>
+        <div class="stat-trend" style="color: var(--risk-high);">
+          <span>{{ s.risk_percentages['High Risk'] }}%</span> critical triage
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Statistics Strip -->
+  <div class="clinical-card bg-light border p-3 mb-4 shadow-sm">
+    <div class="row g-3 text-center align-items-center">
+      <div class="col-md-3 col-6 border-end">
+        <div class="small text-muted text-uppercase fw-bold">Cohort Mean Age</div>
+        <div class="h4 fw-bold text-dark mb-0">{{ s.summary.mean_age }} <span class="fs-6 fw-normal text-muted">years</span></div>
+      </div>
+      <div class="col-md-3 col-6 border-end-md">
+        <div class="small text-muted text-uppercase fw-bold">Cohort Mean BMI</div>
+        <div class="h4 fw-bold text-dark mb-0">{{ s.summary.mean_bmi }} <span class="fs-6 fw-normal text-muted">kg/m²</span></div>
+      </div>
+      <div class="col-md-3 col-6 border-end">
+        <div class="small text-muted text-uppercase fw-bold">Mean Model Confidence</div>
+        <div class="h4 fw-bold text-teal mb-0" style="color: var(--primary-teal);">{{ s.summary.mean_confidence }}%</div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="small text-muted text-uppercase fw-bold">Underweight Vulnerability</div>
+        <div class="h4 fw-bold text-danger mb-0">{{ s.summary.underweight_count }} <span class="fs-6 fw-normal text-muted">({{ s.summary.underweight_pct }}%)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts Grid -->
+  <div class="row g-4 mb-4">
+    <!-- Chart 1: Risk Stratification Pie/Doughnut Chart -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Nutritional Risk Distribution</h2>
+            <p class="text-muted small mb-0">Proportion across Low, Moderate, and High Risk tiers</p>
+          </div>
+          <span class="badge bg-light text-muted border">3 Tiers</span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartRiskPie"></canvas>
+        </div>
+        <div class="d-flex justify-content-around mt-3 pt-3 border-top text-center small">
+          <div><span class="badge" style="background-color: var(--risk-low);">&bull;</span> Low: <strong>{{ s.low_count }}</strong> ({{ s.risk_percentages['Low Risk'] }}%)</div>
+          <div><span class="badge" style="background-color: var(--risk-moderate);">&bull;</span> Mod: <strong>{{ s.moderate_count }}</strong> ({{ s.risk_percentages['Moderate Risk'] }}%)</div>
+          <div><span class="badge" style="background-color: var(--risk-high);">&bull;</span> High: <strong>{{ s.high_count }}</strong> ({{ s.risk_percentages['High Risk'] }}%)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: BMI Distribution Bar Chart -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Body Mass Index (BMI) Distribution</h2>
+            <p class="text-muted small mb-0">World Health Organization (WHO) adult categories</p>
+          </div>
+          <span class="badge bg-light text-muted border">Anthropometrics</span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartBMIDist"></canvas>
+        </div>
+        <div class="text-center text-muted small mt-2">
+          Cohort mean BMI: <strong>{{ s.summary.mean_bmi }} kg/m²</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 3: Age Distribution Bar Chart -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Age Cohort Distribution</h2>
+            <p class="text-muted small mb-0">Assessment frequency across adult age brackets</p>
+          </div>
+          <span class="badge bg-light text-muted border">Adult Cohorts</span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartAgeDist"></canvas>
+        </div>
+        <div class="text-center text-muted small mt-2">
+          Cohort mean age: <strong>{{ s.summary.mean_age }} years</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 4: Biological Sex Distribution Pie Chart -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Biological Sex Ratio</h2>
+            <p class="text-muted small mb-0">Screened population demographic split</p>
+          </div>
+          <span class="badge bg-light text-muted border">Demographics</span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartSexRatio"></canvas>
+        </div>
+        <div class="d-flex justify-content-center gap-4 mt-3 pt-3 border-top text-center small">
+          <div><span class="badge" style="background-color: #0d9488;">&bull;</span> Female: <strong>{{ s.sex_counts[0] }}</strong> ({{ '%.1f'|format(s.sex_counts[0] / s.total * 100) if s.total > 0 else 0 }}%)</div>
+          <div><span class="badge" style="background-color: #6366f1;">&bull;</span> Male: <strong>{{ s.sex_counts[1] }}</strong> ({{ '%.1f'|format(s.sex_counts[1] / s.total * 100) if s.total > 0 else 0 }}%)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 5: Risk Category Comparison by Age Cohort (Stacked Bar Chart) -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Risk Category Comparison by Age</h2>
+            <p class="text-muted small mb-0">Vulnerability stratification stacked across age brackets</p>
+          </div>
+          <span class="badge bg-light text-muted border">Cross-Tabulation</span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartRiskByAge"></canvas>
+        </div>
+        <div class="text-center text-muted small mt-2">
+          Demonstrates disproportionate vulnerability in older cohorts (60-74, 75+)
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 6: Assessment Trends Over Time (Line Chart) -->
+    <div class="col-lg-6">
+      <div class="clinical-card h-100 shadow-sm mb-0">
+        <div class="card-header-clean">
+          <div>
+            <h2 class="h6 fw-bold mb-0">Screening Ingestion Over Time</h2>
+            <p class="text-muted small mb-0">Chronological screening activity and daily volume</p>
+          </div>
+          <span class="badge bg-teal-subtle text-teal border" style="background-color: var(--primary-teal-light); color: var(--primary-teal-dark);">
+            {{ s.trend_dates|length }} Days Active
+          </span>
+        </div>
+        <div style="position: relative; height: 260px;">
+          <canvas id="chartTimelineTrend"></canvas>
+        </div>
+        <div class="text-center text-muted small mt-2">
+          Assessments recorded by calendar date
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js Initialization Script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const stats = {{ s|tojson }};
+      const riskLabels = {{ labels|tojson }};
+      const riskColors = ['#10b981', '#f59e0b', '#ef4444'];
+      const riskHoverColors = ['#059669', '#d97706', '#dc2626'];
+
+      // 1. Risk Distribution Doughnut Chart
+      const ctxRisk = document.getElementById('chartRiskPie');
+      if (ctxRisk) {
+        new Chart(ctxRisk, {
+          type: 'doughnut',
+          data: {
+            labels: riskLabels,
+            datasets: [{
+              data: [stats.low_count, stats.moderate_count, stats.high_count],
+              backgroundColor: riskColors,
+              hoverBackgroundColor: riskHoverColors,
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const total = stats.total;
+                    const val = context.raw || 0;
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                    return ` ${context.label}: ${val} (${pct}%)`;
+                  }
+                }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+
+      // 2. BMI Distribution Bar Chart
+      const ctxBMI = document.getElementById('chartBMIDist');
+      if (ctxBMI) {
+        new Chart(ctxBMI, {
+          type: 'bar',
+          data: {
+            labels: stats.bmi_labels,
+            datasets: [{
+              label: 'Screened Individuals',
+              data: stats.bmi_counts,
+              backgroundColor: ['#ef4444', '#10b981', '#f59e0b', '#b91c1c'],
+              borderRadius: 6,
+              maxBarThickness: 42
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // 3. Age Distribution Bar Chart
+      const ctxAge = document.getElementById('chartAgeDist');
+      if (ctxAge) {
+        new Chart(ctxAge, {
+          type: 'bar',
+          data: {
+            labels: stats.age_labels,
+            datasets: [{
+              label: 'Individuals',
+              data: stats.age_counts,
+              backgroundColor: '#0d9488',
+              borderRadius: 6,
+              maxBarThickness: 38
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // 4. Sex Ratio Pie Chart
+      const ctxSex = document.getElementById('chartSexRatio');
+      if (ctxSex) {
+        new Chart(ctxSex, {
+          type: 'pie',
+          data: {
+            labels: stats.sex_labels,
+            datasets: [{
+              data: stats.sex_counts,
+              backgroundColor: ['#0d9488', '#6366f1'],
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
+
+      // 5. Stacked Bar Chart: Risk Category Comparison by Age Cohort
+      const ctxRiskByAge = document.getElementById('chartRiskByAge');
+      if (ctxRiskByAge) {
+        new Chart(ctxRiskByAge, {
+          type: 'bar',
+          data: {
+            labels: stats.age_labels,
+            datasets: [
+              {
+                label: 'Low Risk',
+                data: stats.risk_by_age['Low Risk'],
+                backgroundColor: '#10b981',
+                borderRadius: 4
+              },
+              {
+                label: 'Moderate Risk',
+                data: stats.risk_by_age['Moderate Risk'],
+                backgroundColor: '#f59e0b',
+                borderRadius: 4
+              },
+              {
+                label: 'High Risk',
+                data: stats.risk_by_age['High Risk'],
+                backgroundColor: '#ef4444',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            },
+            scales: {
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, beginAtZero: true, ticks: { precision: 0, stepSize: 1 } }
+            }
+          }
+        });
+      }
+
+      // 6. Timeline Trend Line Chart
+      const ctxTrend = document.getElementById('chartTimelineTrend');
+      if (ctxTrend) {
+        new Chart(ctxTrend, {
+          type: 'line',
+          data: {
+            labels: stats.trend_dates,
+            datasets: [{
+              label: 'Screening Ingestion',
+              data: stats.trend_counts,
+              borderColor: '#0d9488',
+              backgroundColor: 'rgba(13, 148, 136, 0.12)',
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#0d9488',
+              pointRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
